@@ -1,5 +1,6 @@
-import { motion } from 'framer-motion';
-import { Package, MapPin, Star, Zap, Sparkles, Shield } from 'lucide-react';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Package, MapPin, Star, Zap, Sparkles, Shield, X, Phone, Navigation } from 'lucide-react';
 
 interface Product {
   id: number;
