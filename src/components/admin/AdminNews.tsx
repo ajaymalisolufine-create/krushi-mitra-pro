@@ -1,49 +1,27 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Edit2, Trash2, Newspaper, ExternalLink } from 'lucide-react';
-
-interface NewsItem {
-  id: number;
-  title: string;
-  source: string;
-  category: string;
-  publishedAt: string;
-  status: 'published' | 'draft';
-}
-
-const initialNews: NewsItem[] = [
-  {
-    id: 1,
-    title: 'Maharashtra leads in grape exports; 20% increase expected this year',
-    source: 'Agri News',
-    category: 'Export',
-    publishedAt: '2024-01-20',
-    status: 'published',
-  },
-  {
-    id: 2,
-    title: 'New government scheme announced for chickpea farmers',
-    source: 'Farmer Friend',
-    category: 'Scheme',
-    publishedAt: '2024-01-19',
-    status: 'published',
-  },
-  {
-    id: 3,
-    title: 'Weather forecast: Moderate rain expected next week',
-    source: 'Weather Dept',
-    category: 'Weather',
-    publishedAt: '2024-01-18',
-    status: 'draft',
-  },
-];
+import { Plus, Edit2, Trash2, Newspaper, Loader2 } from 'lucide-react';
+import { useNews, useCreateNews, useUpdateNews, useDeleteNews, type News } from '@/hooks/useNews';
+import { format } from 'date-fns';
 
 export const AdminNews = () => {
-  const [news, setNews] = useState<NewsItem[]>(initialNews);
-  const [showModal, setShowModal] = useState(false);
-  const [editingNews, setEditingNews] = useState<NewsItem | null>(null);
+  const { data: news = [], isLoading } = useNews();
+  const createNews = useCreateNews();
+  const updateNews = useUpdateNews();
+  const deleteNews = useDeleteNews();
 
-  const getCategoryColor = (category: string) => {
+  const [showModal, setShowModal] = useState(false);
+  const [editingNews, setEditingNews] = useState<News | null>(null);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    title: '',
+    source: '',
+    category: 'general',
+    status: 'published',
+  });
+
+  const getCategoryColor = (category: string | null) => {
     switch (category) {
       case 'Export': return 'bg-secondary/20 text-secondary';
       case 'Scheme': return 'bg-harvest-gold/20 text-accent';
@@ -52,11 +30,66 @@ export const AdminNews = () => {
     }
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this news?')) {
-      setNews(news.filter((n) => n.id !== id));
+      deleteNews.mutate(id);
     }
   };
+
+  const handleEdit = (item: News) => {
+    setEditingNews(item);
+    setFormData({
+      title: item.title,
+      source: item.source || '',
+      category: item.category || 'general',
+      status: item.status,
+    });
+    setShowModal(true);
+  };
+
+  const handleOpenCreate = () => {
+    setEditingNews(null);
+    setFormData({
+      title: '',
+      source: '',
+      category: 'general',
+      status: 'published',
+    });
+    setShowModal(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const newsData = {
+      title: formData.title,
+      content: null,
+      source: formData.source || null,
+      category: formData.category || null,
+      image_url: null,
+      external_url: null,
+      status: formData.status,
+      published_at: new Date().toISOString(),
+    };
+
+    if (editingNews) {
+      updateNews.mutate({ id: editingNews.id, updates: newsData }, {
+        onSuccess: () => setShowModal(false),
+      });
+    } else {
+      createNews.mutate(newsData, {
+        onSuccess: () => setShowModal(false),
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -64,13 +97,10 @@ export const AdminNews = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">News</h1>
-          <p className="text-muted-foreground">Manage agriculture news</p>
+          <p className="text-muted-foreground">Manage agriculture news ({news.length} articles)</p>
         </div>
         <button
-          onClick={() => {
-            setEditingNews(null);
-            setShowModal(true);
-          }}
+          onClick={handleOpenCreate}
           className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors"
         >
           <Plus className="w-5 h-5" />
@@ -109,14 +139,11 @@ export const AdminNews = () => {
                   </span>
                   <span>{item.source}</span>
                   <span>•</span>
-                  <span>{item.publishedAt}</span>
+                  <span>{format(new Date(item.published_at), 'MMM dd, yyyy')}</span>
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => {
-                      setEditingNews(item);
-                      setShowModal(true);
-                    }}
+                    onClick={() => handleEdit(item)}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-muted hover:bg-primary hover:text-primary-foreground transition-colors text-xs font-medium"
                   >
                     <Edit2 className="w-3 h-3" />
@@ -124,6 +151,7 @@ export const AdminNews = () => {
                   </button>
                   <button
                     onClick={() => handleDelete(item.id)}
+                    disabled={deleteNews.isPending}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-destructive/10 text-destructive transition-colors text-xs font-medium"
                   >
                     <Trash2 className="w-3 h-3" />
@@ -147,14 +175,16 @@ export const AdminNews = () => {
             <h2 className="text-xl font-bold mb-4">
               {editingNews ? 'Edit News' : 'Add News'}
             </h2>
-            <form className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Title</label>
                 <textarea
-                  defaultValue={editingNews?.title}
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                   rows={2}
                   placeholder="News headline"
+                  required
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -162,7 +192,8 @@ export const AdminNews = () => {
                   <label className="block text-sm font-medium mb-1">Source</label>
                   <input
                     type="text"
-                    defaultValue={editingNews?.source}
+                    value={formData.source}
+                    onChange={(e) => setFormData({ ...formData, source: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="e.g., Agri News"
                   />
@@ -170,21 +201,24 @@ export const AdminNews = () => {
                 <div>
                   <label className="block text-sm font-medium mb-1">Category</label>
                   <select
-                    defaultValue={editingNews?.category}
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                   >
-                    <option>Export</option>
-                    <option>Scheme</option>
-                    <option>Weather</option>
-                    <option>Market</option>
-                    <option>Technology</option>
+                    <option value="general">General</option>
+                    <option value="Export">Export</option>
+                    <option value="Scheme">Scheme</option>
+                    <option value="Weather">Weather</option>
+                    <option value="Market">Market</option>
+                    <option value="Technology">Technology</option>
                   </select>
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Status</label>
                 <select
-                  defaultValue={editingNews?.status}
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="published">Published</option>
@@ -201,12 +235,12 @@ export const AdminNews = () => {
                 </button>
                 <button
                   type="submit"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setShowModal(false);
-                  }}
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  disabled={createNews.isPending || updateNews.isPending}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
+                  {(createNews.isPending || updateNews.isPending) && (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  )}
                   {editingNews ? 'Update' : 'Publish'}
                 </button>
               </div>

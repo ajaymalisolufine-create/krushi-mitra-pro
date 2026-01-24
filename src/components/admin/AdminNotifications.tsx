@@ -1,50 +1,25 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Send, Bell, Users, MapPin, Grape, Leaf, Clock, Trash2 } from 'lucide-react';
-
-interface Notification {
-  id: number;
-  title: string;
-  message: string;
-  targetType: 'all' | 'crop' | 'location';
-  targetValue: string;
-  scheduledAt: string;
-  status: 'sent' | 'scheduled' | 'draft';
-}
-
-const initialNotifications: Notification[] = [
-  {
-    id: 1,
-    title: 'New Offer! 🎉',
-    message: 'THUNDER 20% OFF - Only this week',
-    targetType: 'all',
-    targetValue: 'All Users',
-    scheduledAt: '2024-01-20 10:00',
-    status: 'sent',
-  },
-  {
-    id: 2,
-    title: 'Weather Alert ⚠️',
-    message: 'Rain expected in next 3 days - Avoid spraying',
-    targetType: 'location',
-    targetValue: 'Sangli',
-    scheduledAt: '2024-01-21 08:00',
-    status: 'scheduled',
-  },
-  {
-    id: 3,
-    title: 'New PDF Guide',
-    message: 'Grape Pruning Techniques - Complete Guide',
-    targetType: 'crop',
-    targetValue: 'Grape',
-    scheduledAt: '2024-01-22 12:00',
-    status: 'draft',
-  },
-];
+import { Plus, Send, Bell, Users, MapPin, Grape, Clock, Trash2, Loader2 } from 'lucide-react';
+import { useNotifications, useCreateNotification, useDeleteNotification, type Notification } from '@/hooks/useNotifications';
+import { format } from 'date-fns';
 
 export const AdminNotifications = () => {
-  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
+  const { data: notifications = [], isLoading } = useNotifications();
+  const createNotification = useCreateNotification();
+  const deleteNotification = useDeleteNotification();
+
   const [showModal, setShowModal] = useState(false);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    title: '',
+    message: '',
+    target_type: 'all',
+    target_value: 'All',
+    scheduled_at: '',
+    status: 'scheduled',
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -55,7 +30,7 @@ export const AdminNotifications = () => {
     }
   };
 
-  const getTargetIcon = (type: string) => {
+  const getTargetIcon = (type: string | null) => {
     switch (type) {
       case 'all': return Users;
       case 'location': return MapPin;
@@ -64,11 +39,53 @@ export const AdminNotifications = () => {
     }
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this notification?')) {
-      setNotifications(notifications.filter((n) => n.id !== id));
+      deleteNotification.mutate(id);
     }
   };
+
+  const handleOpenCreate = () => {
+    setFormData({
+      title: '',
+      message: '',
+      target_type: 'all',
+      target_value: 'All',
+      scheduled_at: '',
+      status: 'scheduled',
+    });
+    setShowModal(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent, isDraft: boolean = false) => {
+    e.preventDefault();
+    
+    const notificationData = {
+      title: formData.title,
+      message: formData.message,
+      target_type: formData.target_type || null,
+      target_value: formData.target_value || null,
+      scheduled_at: formData.scheduled_at ? new Date(formData.scheduled_at).toISOString() : null,
+      sent_at: null,
+      status: isDraft ? 'draft' : 'scheduled',
+    };
+
+    createNotification.mutate(notificationData, {
+      onSuccess: () => setShowModal(false),
+    });
+  };
+
+  // Calculate stats
+  const sentCount = notifications.filter(n => n.status === 'sent').length;
+  const scheduledCount = notifications.filter(n => n.status === 'scheduled').length;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -79,7 +96,7 @@ export const AdminNotifications = () => {
           <p className="text-muted-foreground">Send push notifications to users</p>
         </div>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={handleOpenCreate}
           className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors"
         >
           <Plus className="w-5 h-5" />
@@ -95,8 +112,8 @@ export const AdminNotifications = () => {
               <Send className="w-5 h-5 text-secondary" />
             </div>
             <div>
-              <p className="text-2xl font-bold">156</p>
-              <p className="text-xs text-muted-foreground">Sent This Month</p>
+              <p className="text-2xl font-bold">{sentCount}</p>
+              <p className="text-xs text-muted-foreground">Sent</p>
             </div>
           </div>
         </div>
@@ -106,7 +123,7 @@ export const AdminNotifications = () => {
               <Clock className="w-5 h-5 text-sky-blue" />
             </div>
             <div>
-              <p className="text-2xl font-bold">8</p>
+              <p className="text-2xl font-bold">{scheduledCount}</p>
               <p className="text-xs text-muted-foreground">Scheduled</p>
             </div>
           </div>
@@ -117,8 +134,8 @@ export const AdminNotifications = () => {
               <Users className="w-5 h-5 text-accent" />
             </div>
             <div>
-              <p className="text-2xl font-bold">12.4K</p>
-              <p className="text-xs text-muted-foreground">Total Reach</p>
+              <p className="text-2xl font-bold">{notifications.length}</p>
+              <p className="text-xs text-muted-foreground">Total</p>
             </div>
           </div>
         </div>
@@ -131,7 +148,7 @@ export const AdminNotifications = () => {
         </div>
         <div className="divide-y divide-border">
           {notifications.map((notif, index) => {
-            const TargetIcon = getTargetIcon(notif.targetType);
+            const TargetIcon = getTargetIcon(notif.target_type);
             return (
               <motion.div
                 key={notif.id}
@@ -155,16 +172,17 @@ export const AdminNotifications = () => {
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <TargetIcon className="w-3 h-3" />
-                        <span>{notif.targetValue}</span>
+                        <span>{notif.target_value || 'All Users'}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        <span>{notif.scheduledAt}</span>
+                        <span>{notif.scheduled_at ? format(new Date(notif.scheduled_at), 'MMM dd, yyyy HH:mm') : 'Immediate'}</span>
                       </div>
                     </div>
                   </div>
                   <button
                     onClick={() => handleDelete(notif.id)}
+                    disabled={deleteNotification.isPending}
                     className="p-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -190,22 +208,32 @@ export const AdminNotifications = () => {
                 <label className="block text-sm font-medium mb-1">Title</label>
                 <input
                   type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="e.g., New Offer! 🎉"
+                  required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Message</label>
                 <textarea
+                  value={formData.message}
+                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                   rows={3}
                   placeholder="Notification message..."
+                  required
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Target Type</label>
-                  <select className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary">
+                  <select
+                    value={formData.target_type}
+                    onChange={(e) => setFormData({ ...formData, target_type: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
                     <option value="all">All Users</option>
                     <option value="crop">By Crop</option>
                     <option value="location">By Location</option>
@@ -213,7 +241,11 @@ export const AdminNotifications = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Target</label>
-                  <select className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary">
+                  <select
+                    value={formData.target_value}
+                    onChange={(e) => setFormData({ ...formData, target_value: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
                     <option>All</option>
                     <option>Grape</option>
                     <option>Chickpea</option>
@@ -226,6 +258,8 @@ export const AdminNotifications = () => {
                 <label className="block text-sm font-medium mb-1">Schedule</label>
                 <input
                   type="datetime-local"
+                  value={formData.scheduled_at}
+                  onChange={(e) => setFormData({ ...formData, scheduled_at: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
@@ -239,19 +273,19 @@ export const AdminNotifications = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={(e) => handleSubmit(e, true)}
+                  disabled={createNotification.isPending}
                   className="px-4 py-2.5 rounded-xl bg-muted hover:bg-muted/80 transition-colors"
                 >
                   Save Draft
                 </button>
                 <button
-                  type="submit"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setShowModal(false);
-                  }}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  type="button"
+                  onClick={(e) => handleSubmit(e, false)}
+                  disabled={createNotification.isPending}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
                 >
+                  {createNotification.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
                   <Send className="w-4 h-4" />
                   Send
                 </button>

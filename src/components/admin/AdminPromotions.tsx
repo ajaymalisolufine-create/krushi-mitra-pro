@@ -1,55 +1,27 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Edit2, Trash2, Calendar, Tag, Percent } from 'lucide-react';
-
-interface Promotion {
-  id: number;
-  title: string;
-  description: string;
-  discount: string;
-  product: string;
-  validFrom: string;
-  validUntil: string;
-  status: 'active' | 'scheduled' | 'expired';
-}
-
-const initialPromotions: Promotion[] = [
-  {
-    id: 1,
-    title: 'THUNDER 20% OFF! ⚡',
-    description: 'Get uniform grape bunch growth',
-    discount: '20%',
-    product: 'THUNDER',
-    validFrom: '2024-01-01',
-    validUntil: '2024-01-31',
-    status: 'active',
-  },
-  {
-    id: 2,
-    title: 'TANGENT Super Offer 🍇',
-    description: 'Bloom booster at special price',
-    discount: '15%',
-    product: 'TANGENT',
-    validFrom: '2024-02-01',
-    validUntil: '2024-02-15',
-    status: 'scheduled',
-  },
-  {
-    id: 3,
-    title: 'Combo Pack Offer 🎁',
-    description: 'THUNDER + TANGENT together',
-    discount: '25%',
-    product: 'Combo',
-    validFrom: '2024-01-15',
-    validUntil: '2024-02-28',
-    status: 'active',
-  },
-];
+import { Plus, Edit2, Trash2, Calendar, Tag, Percent, Loader2 } from 'lucide-react';
+import { usePromotions, useCreatePromotion, useUpdatePromotion, useDeletePromotion, type Promotion } from '@/hooks/usePromotions';
+import { format } from 'date-fns';
 
 export const AdminPromotions = () => {
-  const [promotions, setPromotions] = useState<Promotion[]>(initialPromotions);
+  const { data: promotions = [], isLoading } = usePromotions();
+  const createPromotion = useCreatePromotion();
+  const updatePromotion = useUpdatePromotion();
+  const deletePromotion = useDeletePromotion();
+
   const [showModal, setShowModal] = useState(false);
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    discount: '',
+    valid_from: '',
+    valid_until: '',
+    status: 'active',
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -60,11 +32,69 @@ export const AdminPromotions = () => {
     }
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this promotion?')) {
-      setPromotions(promotions.filter((p) => p.id !== id));
+      deletePromotion.mutate(id);
     }
   };
+
+  const handleEdit = (promo: Promotion) => {
+    setEditingPromotion(promo);
+    setFormData({
+      title: promo.title,
+      description: promo.description || '',
+      discount: promo.discount || '',
+      valid_from: promo.valid_from ? format(new Date(promo.valid_from), 'yyyy-MM-dd') : '',
+      valid_until: promo.valid_until ? format(new Date(promo.valid_until), 'yyyy-MM-dd') : '',
+      status: promo.status,
+    });
+    setShowModal(true);
+  };
+
+  const handleOpenCreate = () => {
+    setEditingPromotion(null);
+    setFormData({
+      title: '',
+      description: '',
+      discount: '',
+      valid_from: format(new Date(), 'yyyy-MM-dd'),
+      valid_until: '',
+      status: 'active',
+    });
+    setShowModal(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const promotionData = {
+      title: formData.title,
+      description: formData.description || null,
+      discount: formData.discount || null,
+      image_url: null,
+      valid_from: formData.valid_from ? new Date(formData.valid_from).toISOString() : new Date().toISOString(),
+      valid_until: formData.valid_until ? new Date(formData.valid_until).toISOString() : null,
+      status: formData.status,
+    };
+
+    if (editingPromotion) {
+      updatePromotion.mutate({ id: editingPromotion.id, updates: promotionData }, {
+        onSuccess: () => setShowModal(false),
+      });
+    } else {
+      createPromotion.mutate(promotionData, {
+        onSuccess: () => setShowModal(false),
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -72,13 +102,10 @@ export const AdminPromotions = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Promotions</h1>
-          <p className="text-muted-foreground">Manage offers and campaigns</p>
+          <p className="text-muted-foreground">Manage offers and campaigns ({promotions.length} promotions)</p>
         </div>
         <button
-          onClick={() => {
-            setEditingPromotion(null);
-            setShowModal(true);
-          }}
+          onClick={handleOpenCreate}
           className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors"
         >
           <Plus className="w-5 h-5" />
@@ -110,7 +137,6 @@ export const AdminPromotions = () => {
 
             <div className="flex items-center gap-2 mb-3">
               <Tag className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm">{promo.product}</span>
               <span className="px-2 py-0.5 rounded-full bg-harvest-gold/20 text-accent text-xs font-bold">
                 {promo.discount}
               </span>
@@ -118,15 +144,14 @@ export const AdminPromotions = () => {
 
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
               <Calendar className="w-3 h-3" />
-              <span>{promo.validFrom} - {promo.validUntil}</span>
+              <span>
+                {promo.valid_from ? format(new Date(promo.valid_from), 'MMM dd') : 'N/A'} - {promo.valid_until ? format(new Date(promo.valid_until), 'MMM dd, yyyy') : 'No end date'}
+              </span>
             </div>
 
             <div className="flex gap-2">
               <button
-                onClick={() => {
-                  setEditingPromotion(promo);
-                  setShowModal(true);
-                }}
+                onClick={() => handleEdit(promo)}
                 className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-muted hover:bg-primary hover:text-primary-foreground transition-colors text-sm font-medium"
               >
                 <Edit2 className="w-4 h-4" />
@@ -134,6 +159,7 @@ export const AdminPromotions = () => {
               </button>
               <button
                 onClick={() => handleDelete(promo.id)}
+                disabled={deletePromotion.isPending}
                 className="px-3 py-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
@@ -154,20 +180,23 @@ export const AdminPromotions = () => {
             <h2 className="text-xl font-bold mb-4">
               {editingPromotion ? 'Edit Promotion' : 'Create New Promotion'}
             </h2>
-            <form className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Title</label>
                 <input
                   type="text"
-                  defaultValue={editingPromotion?.title}
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="e.g., THUNDER 20% OFF!"
+                  required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Description</label>
                 <textarea
-                  defaultValue={editingPromotion?.description}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                   rows={2}
                   placeholder="Promotion description"
@@ -175,25 +204,26 @@ export const AdminPromotions = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Product</label>
-                  <select
-                    defaultValue={editingPromotion?.product}
-                    className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option>THUNDER</option>
-                    <option>TANGENT</option>
-                    <option>MARINUS</option>
-                    <option>Combo</option>
-                  </select>
-                </div>
-                <div>
                   <label className="block text-sm font-medium mb-1">Discount</label>
                   <input
                     type="text"
-                    defaultValue={editingPromotion?.discount}
+                    value={formData.discount}
+                    onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="20%"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Status</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="active">Active</option>
+                    <option value="scheduled">Scheduled</option>
+                    <option value="expired">Expired</option>
+                  </select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -201,7 +231,8 @@ export const AdminPromotions = () => {
                   <label className="block text-sm font-medium mb-1">Valid From</label>
                   <input
                     type="date"
-                    defaultValue={editingPromotion?.validFrom}
+                    value={formData.valid_from}
+                    onChange={(e) => setFormData({ ...formData, valid_from: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
@@ -209,7 +240,8 @@ export const AdminPromotions = () => {
                   <label className="block text-sm font-medium mb-1">Valid Until</label>
                   <input
                     type="date"
-                    defaultValue={editingPromotion?.validUntil}
+                    value={formData.valid_until}
+                    onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
@@ -224,12 +256,12 @@ export const AdminPromotions = () => {
                 </button>
                 <button
                   type="submit"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setShowModal(false);
-                  }}
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  disabled={createPromotion.isPending || updatePromotion.isPending}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
+                  {(createPromotion.isPending || updatePromotion.isPending) && (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  )}
                   {editingPromotion ? 'Update' : 'Create'}
                 </button>
               </div>
