@@ -5,78 +5,105 @@ import {
   Search,
   Edit2,
   Trash2,
-  MoreVertical,
-  Zap,
-  Sparkles,
-  Shield,
   Package,
   Filter,
+  Loader2,
 } from 'lucide-react';
-
-interface Product {
-  id: number;
-  name: string;
-  tagline: string;
-  category: string;
-  crops: string[];
-  dosage: string;
-  mrp: number;
-  status: 'active' | 'draft';
-}
-
-const initialProducts: Product[] = [
-  {
-    id: 1,
-    name: 'THUNDER',
-    tagline: 'द्राक्ष मण्यांची एकसमान वाढ ⚡',
-    category: 'Bio-Stimulant',
-    crops: ['Grape', 'Pomegranate'],
-    dosage: '2ml/L',
-    mrp: 1850,
-    status: 'active',
-  },
-  {
-    id: 2,
-    name: 'TANGENT',
-    tagline: 'Bloom Booster 🍇',
-    category: 'Bloom Booster',
-    crops: ['Grape', 'Mango', 'Orange'],
-    dosage: '1.5ml/L',
-    mrp: 2200,
-    status: 'active',
-  },
-  {
-    id: 3,
-    name: 'MARINUS',
-    tagline: 'Seaweed Based Nutrition 🌊',
-    category: 'Organic Fertilizer',
-    crops: ['All Crops'],
-    dosage: '3ml/L',
-    mrp: 1650,
-    status: 'active',
-  },
-];
+import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, type Product } from '@/hooks/useProducts';
 
 export const AdminProducts = () => {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const { data: products = [], isLoading } = useProducts();
+  const createProduct = useCreateProduct();
+  const updateProduct = useUpdateProduct();
+  const deleteProduct = useDeleteProduct();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    name: '',
+    tagline: '',
+    category: 'fertilizers',
+    crops: '',
+    dosage: '',
+    mrp: '',
+    status: 'active',
+  });
 
   const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this product?')) {
-      setProducts(products.filter((p) => p.id !== id));
+      deleteProduct.mutate(id);
     }
   };
 
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
+    setFormData({
+      name: product.name,
+      tagline: product.tagline || '',
+      category: product.category,
+      crops: product.crops?.join(', ') || '',
+      dosage: product.dosage || '',
+      mrp: product.mrp.toString(),
+      status: product.status,
+    });
     setShowModal(true);
   };
+
+  const handleOpenCreate = () => {
+    setEditingProduct(null);
+    setFormData({
+      name: '',
+      tagline: '',
+      category: 'fertilizers',
+      crops: '',
+      dosage: '',
+      mrp: '',
+      status: 'active',
+    });
+    setShowModal(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const productData = {
+      name: formData.name,
+      tagline: formData.tagline || null,
+      description: null,
+      category: formData.category,
+      crops: formData.crops.split(',').map(c => c.trim()).filter(Boolean),
+      dosage: formData.dosage || null,
+      mrp: parseFloat(formData.mrp) || 0,
+      image_url: null,
+      icon: 'leaf',
+      status: formData.status,
+    };
+
+    if (editingProduct) {
+      updateProduct.mutate({ id: editingProduct.id, updates: productData }, {
+        onSuccess: () => setShowModal(false),
+      });
+    } else {
+      createProduct.mutate(productData, {
+        onSuccess: () => setShowModal(false),
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -84,13 +111,10 @@ export const AdminProducts = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Products</h1>
-          <p className="text-muted-foreground">Manage your product catalog</p>
+          <p className="text-muted-foreground">Manage your product catalog ({products.length} products)</p>
         </div>
         <button
-          onClick={() => {
-            setEditingProduct(null);
-            setShowModal(true);
-          }}
+          onClick={handleOpenCreate}
           className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors"
         >
           <Plus className="w-5 h-5" />
@@ -177,6 +201,7 @@ export const AdminProducts = () => {
                       <button
                         onClick={() => handleDelete(product.id)}
                         className="p-2 rounded-lg hover:bg-destructive/10 transition-colors"
+                        disabled={deleteProduct.isPending}
                       >
                         <Trash2 className="w-4 h-4 text-destructive" />
                       </button>
@@ -200,21 +225,24 @@ export const AdminProducts = () => {
             <h2 className="text-xl font-bold mb-4">
               {editingProduct ? 'Edit Product' : 'Add New Product'}
             </h2>
-            <form className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Product Name</label>
                 <input
                   type="text"
-                  defaultValue={editingProduct?.name}
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="e.g., THUNDER"
+                  required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Tagline</label>
                 <input
                   type="text"
-                  defaultValue={editingProduct?.tagline}
+                  value={formData.tagline}
+                  onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="Product description"
                 />
@@ -223,22 +251,24 @@ export const AdminProducts = () => {
                 <div>
                   <label className="block text-sm font-medium mb-1">Category</label>
                   <select
-                    defaultValue={editingProduct?.category}
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                   >
-                    <option>Bio-Stimulant</option>
-                    <option>Bloom Booster</option>
-                    <option>Organic Fertilizer</option>
-                    <option>Plant Protection</option>
+                    <option value="fertilizers">Fertilizers</option>
+                    <option value="bio-stimulants">Bio-Stimulants</option>
+                    <option value="plant-protection">Plant Protection</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">MRP (₹)</label>
                   <input
                     type="number"
-                    defaultValue={editingProduct?.mrp}
+                    value={formData.mrp}
+                    onChange={(e) => setFormData({ ...formData, mrp: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="1850"
+                    required
                   />
                 </div>
               </div>
@@ -246,19 +276,32 @@ export const AdminProducts = () => {
                 <label className="block text-sm font-medium mb-1">Dosage</label>
                 <input
                   type="text"
-                  defaultValue={editingProduct?.dosage}
+                  value={formData.dosage}
+                  onChange={(e) => setFormData({ ...formData, dosage: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="2ml/L"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Recommended Crops</label>
+                <label className="block text-sm font-medium mb-1">Recommended Crops (comma-separated)</label>
                 <input
                   type="text"
-                  defaultValue={editingProduct?.crops.join(', ')}
+                  value={formData.crops}
+                  onChange={(e) => setFormData({ ...formData, crops: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="Grape, Pomegranate"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Status</label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="active">Active</option>
+                  <option value="draft">Draft</option>
+                </select>
               </div>
               <div className="flex gap-3 pt-4">
                 <button
@@ -270,12 +313,12 @@ export const AdminProducts = () => {
                 </button>
                 <button
                   type="submit"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setShowModal(false);
-                  }}
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  disabled={createProduct.isPending || updateProduct.isPending}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
+                  {(createProduct.isPending || updateProduct.isPending) && (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  )}
                   {editingProduct ? 'Update' : 'Create'}
                 </button>
               </div>

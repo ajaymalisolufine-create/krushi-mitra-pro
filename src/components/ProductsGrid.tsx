@@ -1,69 +1,24 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Package, MapPin, Star, Zap, Sparkles, Shield, X, Phone, Navigation } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Package, MapPin, Star, Zap, Sparkles, Shield, Loader2, Droplet, Leaf } from 'lucide-react';
+import { useProducts, type Product } from '@/hooks/useProducts';
 
-interface Product {
-  id: number;
-  name: string;
-  tagline: string;
-  category: string;
-  crops: string[];
-  dosage: string;
-  mrp: number;
-  rating: number;
-  icon: 'thunder' | 'tangent' | 'marinus';
-}
-
-const products: Product[] = [
-  {
-    id: 1,
-    name: 'THUNDER',
-    tagline: 'द्राक्ष मण्यांची एकसमान वाढ ⚡',
-    category: 'जैव-उत्तेजक',
-    crops: ['द्राक्ष', 'डाळिंब'],
-    dosage: '2ml/लीटर',
-    mrp: 1850,
-    rating: 4.8,
-    icon: 'thunder',
-  },
-  {
-    id: 2,
-    name: 'TANGENT',
-    tagline: 'फुलोरा वाढक 🍇',
-    category: 'फुलोरा बूस्टर',
-    crops: ['द्राक्ष', 'आंबा', 'संत्रा'],
-    dosage: '1.5ml/लीटर',
-    mrp: 2200,
-    rating: 4.9,
-    icon: 'tangent',
-  },
-  {
-    id: 3,
-    name: 'MARINUS',
-    tagline: 'सीव्हीड आधारित पोषण 🌊',
-    category: 'सेंद्रिय खत',
-    crops: ['सर्व पिके'],
-    dosage: '3ml/लीटर',
-    mrp: 1650,
-    rating: 4.7,
-    icon: 'marinus',
-  },
-];
-
-const getProductIcon = (icon: string) => {
+const getProductIcon = (icon: string | null) => {
   switch (icon) {
-    case 'thunder': return Zap;
-    case 'tangent': return Sparkles;
-    case 'marinus': return Shield;
+    case 'zap': return Zap;
+    case 'flower': case 'sparkles': return Sparkles;
+    case 'shield': return Shield;
+    case 'droplet': return Droplet;
+    case 'leaf': return Leaf;
     default: return Package;
   }
 };
 
-const getProductGradient = (icon: string) => {
+const getProductGradient = (icon: string | null) => {
   switch (icon) {
-    case 'thunder': return 'from-harvest-gold to-sunrise-orange';
-    case 'tangent': return 'from-secondary to-leaf-green';
-    case 'marinus': return 'from-sky-blue to-secondary';
+    case 'zap': return 'from-harvest-gold to-sunrise-orange';
+    case 'flower': case 'sparkles': return 'from-secondary to-leaf-green';
+    case 'shield': return 'from-sky-blue to-secondary';
+    case 'droplet': return 'from-sky-blue to-primary';
     default: return 'from-primary to-secondary';
   }
 };
@@ -73,6 +28,19 @@ interface ProductsGridProps {
 }
 
 export const ProductsGrid = ({ onProductClick }: ProductsGridProps) => {
+  const { data: products = [], isLoading } = useProducts();
+
+  // Filter only active products for display
+  const activeProducts = products.filter(p => p.status === 'active');
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -103,7 +71,7 @@ export const ProductsGrid = ({ onProductClick }: ProductsGridProps) => {
 
       {/* Products */}
       <div className="grid grid-cols-1 gap-4">
-        {products.map((product, index) => {
+        {activeProducts.map((product, index) => {
           const ProductIcon = getProductIcon(product.icon);
           return (
             <motion.div
@@ -129,7 +97,7 @@ export const ProductsGrid = ({ onProductClick }: ProductsGridProps) => {
                     </div>
                     <div className="flex items-center gap-1 bg-harvest-gold/20 px-2 py-1 rounded-full">
                       <Star className="w-3 h-3 fill-harvest-gold text-harvest-gold" />
-                      <span className="text-xs font-semibold text-accent">{product.rating}</span>
+                      <span className="text-xs font-semibold text-accent">4.8</span>
                     </div>
                   </div>
 
@@ -148,7 +116,7 @@ export const ProductsGrid = ({ onProductClick }: ProductsGridProps) => {
 
               {/* Crops */}
               <div className="mt-3 flex flex-wrap gap-2">
-                {product.crops.map((crop) => (
+                {product.crops?.map((crop) => (
                   <span
                     key={crop}
                     className="px-2 py-0.5 bg-muted rounded-full text-xs font-medium text-muted-foreground"
@@ -156,9 +124,11 @@ export const ProductsGrid = ({ onProductClick }: ProductsGridProps) => {
                     {crop}
                   </span>
                 ))}
-                <span className="px-2 py-0.5 bg-secondary/10 rounded-full text-xs font-medium text-secondary">
-                  {product.dosage}
-                </span>
+                {product.dosage && (
+                  <span className="px-2 py-0.5 bg-secondary/10 rounded-full text-xs font-medium text-secondary">
+                    {product.dosage}
+                  </span>
+                )}
               </div>
             </motion.div>
           );

@@ -1,72 +1,104 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Edit2, Trash2, MapPin, Phone, Mail, Search } from 'lucide-react';
-
-interface Dealer {
-  id: number;
-  name: string;
-  address: string;
-  city: string;
-  phone: string;
-  email: string;
-  lat: number;
-  lng: number;
-  status: 'active' | 'inactive';
-}
-
-const initialDealers: Dealer[] = [
-  {
-    id: 1,
-    name: 'Shree Krushi Kendra',
-    address: '123 Main Road, Near Bus Stand',
-    city: 'Sangli',
-    phone: '+91 9876543210',
-    email: 'shreekrushi@email.com',
-    lat: 16.8524,
-    lng: 74.5815,
-    status: 'active',
-  },
-  {
-    id: 2,
-    name: 'Farmer Friend Agro',
-    address: '45 Market Yard',
-    city: 'Miraj',
-    phone: '+91 9876543211',
-    email: 'farmeragro@email.com',
-    lat: 16.8239,
-    lng: 74.6471,
-    status: 'active',
-  },
-  {
-    id: 3,
-    name: 'Green Fields Store',
-    address: '78 Station Road',
-    city: 'Vita',
-    phone: '+91 9876543212',
-    email: 'greenfields@email.com',
-    lat: 17.2719,
-    lng: 74.5383,
-    status: 'inactive',
-  },
-];
+import { Plus, Edit2, Trash2, MapPin, Phone, Mail, Search, Loader2 } from 'lucide-react';
+import { useDealers, useCreateDealer, useUpdateDealer, useDeleteDealer, type Dealer } from '@/hooks/useDealers';
 
 export const AdminDealers = () => {
-  const [dealers, setDealers] = useState<Dealer[]>(initialDealers);
+  const { data: dealers = [], isLoading } = useDealers();
+  const createDealer = useCreateDealer();
+  const updateDealer = useUpdateDealer();
+  const deleteDealer = useDeleteDealer();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingDealer, setEditingDealer] = useState<Dealer | null>(null);
 
+  // Form state
+  const [formData, setFormData] = useState({
+    name: '',
+    address: '',
+    city: 'Sangli',
+    phone: '',
+    email: '',
+    lat: '',
+    lng: '',
+    status: 'active',
+  });
+
   const filteredDealers = dealers.filter(
     (d) =>
       d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.city.toLowerCase().includes(searchQuery.toLowerCase())
+      (d.city?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
   );
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this dealer?')) {
-      setDealers(dealers.filter((d) => d.id !== id));
+      deleteDealer.mutate(id);
     }
   };
+
+  const handleEdit = (dealer: Dealer) => {
+    setEditingDealer(dealer);
+    setFormData({
+      name: dealer.name,
+      address: dealer.address || '',
+      city: dealer.city || 'Sangli',
+      phone: dealer.phone || '',
+      email: dealer.email || '',
+      lat: dealer.lat?.toString() || '',
+      lng: dealer.lng?.toString() || '',
+      status: dealer.status,
+    });
+    setShowModal(true);
+  };
+
+  const handleOpenCreate = () => {
+    setEditingDealer(null);
+    setFormData({
+      name: '',
+      address: '',
+      city: 'Sangli',
+      phone: '',
+      email: '',
+      lat: '',
+      lng: '',
+      status: 'active',
+    });
+    setShowModal(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const dealerData = {
+      name: formData.name,
+      address: formData.address || null,
+      city: formData.city || null,
+      phone: formData.phone || null,
+      email: formData.email || null,
+      lat: formData.lat ? parseFloat(formData.lat) : null,
+      lng: formData.lng ? parseFloat(formData.lng) : null,
+      status: formData.status,
+    };
+
+    if (editingDealer) {
+      updateDealer.mutate({ id: editingDealer.id, updates: dealerData }, {
+        onSuccess: () => setShowModal(false),
+      });
+    } else {
+      createDealer.mutate(dealerData, {
+        onSuccess: () => setShowModal(false),
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -74,13 +106,10 @@ export const AdminDealers = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dealers</h1>
-          <p className="text-muted-foreground">Manage dealer locations</p>
+          <p className="text-muted-foreground">Manage dealer locations ({dealers.length} dealers)</p>
         </div>
         <button
-          onClick={() => {
-            setEditingDealer(null);
-            setShowModal(true);
-          }}
+          onClick={handleOpenCreate}
           className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors"
         >
           <Plus className="w-5 h-5" />
@@ -143,22 +172,23 @@ export const AdminDealers = () => {
             <p className="text-sm text-muted-foreground mb-3">{dealer.address}</p>
 
             <div className="space-y-1 text-sm mb-4">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Phone className="w-3 h-3" />
-                <span>{dealer.phone}</span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Mail className="w-3 h-3" />
-                <span>{dealer.email}</span>
-              </div>
+              {dealer.phone && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Phone className="w-3 h-3" />
+                  <span>{dealer.phone}</span>
+                </div>
+              )}
+              {dealer.email && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Mail className="w-3 h-3" />
+                  <span>{dealer.email}</span>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2">
               <button
-                onClick={() => {
-                  setEditingDealer(dealer);
-                  setShowModal(true);
-                }}
+                onClick={() => handleEdit(dealer)}
                 className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-muted hover:bg-primary hover:text-primary-foreground transition-colors text-sm font-medium"
               >
                 <Edit2 className="w-4 h-4" />
@@ -166,6 +196,7 @@ export const AdminDealers = () => {
               </button>
               <button
                 onClick={() => handleDelete(dealer.id)}
+                disabled={deleteDealer.isPending}
                 className="px-3 py-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
@@ -186,20 +217,23 @@ export const AdminDealers = () => {
             <h2 className="text-xl font-bold mb-4">
               {editingDealer ? 'Edit Dealer' : 'Add New Dealer'}
             </h2>
-            <form className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Dealer Name</label>
                 <input
                   type="text"
-                  defaultValue={editingDealer?.name}
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="e.g., Shree Krushi Kendra"
+                  required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Address</label>
                 <textarea
-                  defaultValue={editingDealer?.address}
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                   rows={2}
                   placeholder="Full address"
@@ -210,7 +244,8 @@ export const AdminDealers = () => {
                   <label className="block text-sm font-medium mb-1">City</label>
                   <input
                     type="text"
-                    defaultValue={editingDealer?.city}
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="Sangli"
                   />
@@ -219,7 +254,8 @@ export const AdminDealers = () => {
                   <label className="block text-sm font-medium mb-1">Phone</label>
                   <input
                     type="tel"
-                    defaultValue={editingDealer?.phone}
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="+91 98765 43210"
                   />
@@ -229,7 +265,8 @@ export const AdminDealers = () => {
                 <label className="block text-sm font-medium mb-1">Email</label>
                 <input
                   type="email"
-                  defaultValue={editingDealer?.email}
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="dealer@email.com"
                 />
@@ -237,7 +274,8 @@ export const AdminDealers = () => {
               <div>
                 <label className="block text-sm font-medium mb-1">Status</label>
                 <select
-                  defaultValue={editingDealer?.status}
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="active">Active</option>
@@ -254,12 +292,12 @@ export const AdminDealers = () => {
                 </button>
                 <button
                   type="submit"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setShowModal(false);
-                  }}
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  disabled={createDealer.isPending || updateDealer.isPending}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
+                  {(createDealer.isPending || updateDealer.isPending) && (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  )}
                   {editingDealer ? 'Update' : 'Add Dealer'}
                 </button>
               </div>
