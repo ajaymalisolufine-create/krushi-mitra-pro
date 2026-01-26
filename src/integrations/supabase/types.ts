@@ -56,6 +56,42 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_interactions: {
+        Row: {
+          created_at: string
+          id: string
+          interaction_data: Json | null
+          interaction_type: string
+          language: string | null
+          phone: string | null
+          screen_name: string
+          selected_crop: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interaction_data?: Json | null
+          interaction_type: string
+          language?: string | null
+          phone?: string | null
+          screen_name: string
+          selected_crop?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interaction_data?: Json | null
+          interaction_type?: string
+          language?: string | null
+          phone?: string | null
+          screen_name?: string
+          selected_crop?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       news: {
         Row: {
           category: string | null
@@ -221,6 +257,39 @@ export type Database = {
           updated_at?: string
           valid_from?: string
           valid_until?: string | null
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          city: string | null
+          created_at: string
+          id: string
+          language: string
+          phone: string
+          selected_crop: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          id?: string
+          language?: string
+          phone: string
+          selected_crop?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          id?: string
+          language?: string
+          phone?: string
+          selected_crop?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
