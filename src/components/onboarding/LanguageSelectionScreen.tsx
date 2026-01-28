@@ -16,8 +16,13 @@ export const LanguageSelectionScreen = ({ onComplete }: LanguageSelectionScreenP
   const { language, setLanguage, trackInteraction } = useApp();
 
   const handleLanguageSelect = async (langCode: string) => {
+    // Update localStorage directly for immediate persistence
+    localStorage.setItem('app_language', langCode);
+    // Update context state
     setLanguage(langCode);
+    // Track the interaction
     await trackInteraction('language_selection', 'select_language', { language: langCode });
+    // Proceed to next screen
     onComplete();
   };
 

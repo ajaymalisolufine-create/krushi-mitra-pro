@@ -14,6 +14,8 @@ export interface Product {
   image_url: string | null;
   icon: string | null;
   status: string;
+  benefits: string[];
+  available_states: string[];
   created_at: string;
   updated_at: string;
 }

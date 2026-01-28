@@ -175,6 +175,8 @@ export type Database = {
       }
       products: {
         Row: {
+          available_states: string[] | null
+          benefits: string[] | null
           category: string
           created_at: string
           crops: string[] | null
@@ -190,6 +192,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          available_states?: string[] | null
+          benefits?: string[] | null
           category?: string
           created_at?: string
           crops?: string[] | null
@@ -205,6 +209,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          available_states?: string[] | null
+          benefits?: string[] | null
           category?: string
           created_at?: string
           crops?: string[] | null
@@ -268,6 +274,7 @@ export type Database = {
           language: string
           phone: string
           selected_crop: string | null
+          state: string | null
           updated_at: string
           user_id: string
         }
@@ -278,6 +285,7 @@ export type Database = {
           language?: string
           phone: string
           selected_crop?: string | null
+          state?: string | null
           updated_at?: string
           user_id: string
         }
@@ -288,6 +296,7 @@ export type Database = {
           language?: string
           phone?: string
           selected_crop?: string | null
+          state?: string | null
           updated_at?: string
           user_id?: string
         }

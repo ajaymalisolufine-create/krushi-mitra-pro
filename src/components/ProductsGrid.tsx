@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Package, MapPin, Star, Zap, Sparkles, Shield, Loader2, Droplet, Leaf } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Package, MapPin, Star, Zap, Sparkles, Shield, Loader2, Droplet, Leaf, X, Check, ChevronDown } from 'lucide-react';
 import { useProducts, type Product } from '@/hooks/useProducts';
 import { useApp } from '@/contexts/AppContext';
+import { Button } from '@/components/ui/button';
 
 const getProductIcon = (icon: string | null) => {
   switch (icon) {
@@ -26,7 +27,7 @@ const getProductGradient = (icon: string | null) => {
 };
 
 const cropMapping: Record<string, string[]> = {
-  grapes: ['द्राक्षे', 'Grapes', 'अंगूर'],
+  grapes: ['द्राक्षे', 'Grapes', 'अंगूर', 'Grape'],
   chickpea: ['हरभरा', 'Chickpea', 'चना'],
   cotton: ['कापूस', 'Cotton', 'कपास'],
   sugarcane: ['ऊस', 'Sugarcane', 'गन्ना'],
@@ -41,6 +42,11 @@ const categories = [
   { key: 'pesticides', mr: 'कीटकनाशके', hi: 'कीटनाशक', en: 'Pesticides' },
 ];
 
+const indianStates = [
+  'Maharashtra', 'Karnataka', 'Gujarat', 'Madhya Pradesh', 'Rajasthan',
+  'Punjab', 'Uttar Pradesh', 'Tamil Nadu', 'Andhra Pradesh', 'Telangana',
+];
+
 interface ProductsGridProps {
   onProductClick?: (product: Product) => void;
 }
@@ -49,6 +55,9 @@ export const ProductsGrid = ({ onProductClick }: ProductsGridProps) => {
   const { data: products = [], isLoading } = useProducts();
   const { language, selectedCrop, trackInteraction } = useApp();
   const [activeCategory, setActiveCategory] = useState('all');
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedState, setSelectedState] = useState('Maharashtra');
+  const [showStateSelector, setShowStateSelector] = useState(false);
 
   const getText = (mr: string, hi: string, en: string) => {
     switch (language) {
@@ -58,7 +67,7 @@ export const ProductsGrid = ({ onProductClick }: ProductsGridProps) => {
     }
   };
 
-  // Filter products based on selected crop and category
+  // Filter products based on selected crop, category, and state
   const filteredProducts = products
     .filter(p => p.status === 'active')
     .filter(p => {
@@ -71,10 +80,16 @@ export const ProductsGrid = ({ onProductClick }: ProductsGridProps) => {
     .filter(p => {
       if (activeCategory === 'all') return true;
       return p.category.toLowerCase() === activeCategory.toLowerCase();
+    })
+    .filter(p => {
+      // Filter by state - if no states specified, show in all states
+      if (!p.available_states || p.available_states.length === 0) return true;
+      return p.available_states.includes(selectedState);
     });
 
   const handleProductClick = async (product: Product) => {
     await trackInteraction('products', 'view_product', { productId: product.id, productName: product.name });
+    setSelectedProduct(product);
     onProductClick?.(product);
   };
 
@@ -101,6 +116,46 @@ export const ProductsGrid = ({ onProductClick }: ProductsGridProps) => {
           <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
             {getText('पिकासाठी', 'फसल के लिए', 'For')} {selectedCrop}
           </span>
+        )}
+      </div>
+
+      {/* State Selector */}
+      <div className="relative">
+        <button
+          onClick={() => setShowStateSelector(!showStateSelector)}
+          className="flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-xl text-sm w-full justify-between"
+        >
+          <span className="flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-primary" />
+            {getText('राज्य:', 'राज्य:', 'State:')} {selectedState}
+          </span>
+          <ChevronDown className={`w-4 h-4 transition-transform ${showStateSelector ? 'rotate-180' : ''}`} />
+        </button>
+        
+        {showStateSelector && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setShowStateSelector(false)} />
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-20 max-h-48 overflow-y-auto"
+            >
+              {indianStates.map((state) => (
+                <button
+                  key={state}
+                  onClick={() => {
+                    setSelectedState(state);
+                    setShowStateSelector(false);
+                  }}
+                  className={`w-full px-4 py-2 text-left text-sm hover:bg-muted transition-colors ${
+                    selectedState === state ? 'bg-primary/10 text-primary' : ''
+                  }`}
+                >
+                  {state}
+                </button>
+              ))}
+            </motion.div>
+          </>
         )}
       </div>
 
@@ -164,6 +219,16 @@ export const ProductsGrid = ({ onProductClick }: ProductsGridProps) => {
                       </div>
                     </div>
 
+                    {/* Benefits Preview */}
+                    {product.benefits && product.benefits.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-xs text-secondary flex items-center gap-1">
+                          <Check className="w-3 h-3" />
+                          {product.benefits[0]}
+                        </p>
+                      </div>
+                    )}
+
                     <div className="mt-3 flex items-center justify-between">
                       <div>
                         <span className="text-xs text-muted-foreground">MRP</span>
@@ -204,6 +269,108 @@ export const ProductsGrid = ({ onProductClick }: ProductsGridProps) => {
           })}
         </div>
       )}
+
+      {/* Product Detail Modal */}
+      <AnimatePresence>
+        {selectedProduct && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center"
+            onClick={() => setSelectedProduct(null)}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-card rounded-t-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
+            >
+              {/* Header */}
+              <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between">
+                <h2 className="text-lg font-bold">{selectedProduct.name}</h2>
+                <button
+                  onClick={() => setSelectedProduct(null)}
+                  className="p-2 rounded-full hover:bg-muted"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-4 space-y-4">
+                {/* Product Header */}
+                <div className="flex gap-4">
+                  <div className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${getProductGradient(selectedProduct.icon)} flex items-center justify-center`}>
+                    {(() => {
+                      const Icon = getProductIcon(selectedProduct.icon);
+                      return <Icon className="w-12 h-12 text-white" />;
+                    })()}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-xl">{selectedProduct.name}</h3>
+                    <p className="text-muted-foreground">{selectedProduct.tagline}</p>
+                    <p className="text-2xl font-bold text-primary mt-2">₹{selectedProduct.mrp}</p>
+                  </div>
+                </div>
+
+                {/* Description */}
+                {selectedProduct.description && (
+                  <div>
+                    <h4 className="font-semibold mb-2">{getText('वर्णन', 'विवरण', 'Description')}</h4>
+                    <p className="text-sm text-muted-foreground">{selectedProduct.description}</p>
+                  </div>
+                )}
+
+                {/* Benefits */}
+                {selectedProduct.benefits && selectedProduct.benefits.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-2">{getText('फायदे', 'लाभ', 'Benefits')}</h4>
+                    <ul className="space-y-2">
+                      {selectedProduct.benefits.map((benefit, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm">
+                          <Check className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
+                          <span>{benefit}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Dosage */}
+                {selectedProduct.dosage && (
+                  <div className="bg-muted rounded-xl p-3">
+                    <h4 className="font-semibold text-sm mb-1">{getText('डोस', 'खुराक', 'Dosage')}</h4>
+                    <p className="text-primary font-medium">{selectedProduct.dosage}</p>
+                  </div>
+                )}
+
+                {/* Crops */}
+                <div>
+                  <h4 className="font-semibold mb-2">{getText('शिफारस केलेली पिके', 'अनुशंसित फसलें', 'Recommended Crops')}</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedProduct.crops?.map((crop) => (
+                      <span key={crop} className="px-3 py-1 bg-secondary/10 text-secondary rounded-full text-sm font-medium">
+                        {crop}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* CTA */}
+                <Button
+                  onClick={() => handleFindDealer(selectedProduct)}
+                  className="w-full h-12 bg-gradient-hero hover:opacity-90"
+                >
+                  <MapPin className="w-5 h-5 mr-2" />
+                  {getText('जवळचे विक्रेते शोधा', 'नजदीकी विक्रेता खोजें', 'Find Nearby Dealer')}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

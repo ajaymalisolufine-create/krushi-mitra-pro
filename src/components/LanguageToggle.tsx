@@ -17,6 +17,14 @@ export const LanguageToggle = ({ currentLang, onLanguageChange }: LanguageToggle
   const [isOpen, setIsOpen] = useState(false);
   const currentLanguage = languages.find(l => l.code === currentLang) || languages[0];
 
+  const handleLanguageChange = (langCode: string) => {
+    // Update localStorage directly for immediate persistence
+    localStorage.setItem('app_language', langCode);
+    // Call the prop function to update context
+    onLanguageChange(langCode);
+    setIsOpen(false);
+  };
+
   return (
     <div className="relative">
       <motion.button
@@ -29,28 +37,32 @@ export const LanguageToggle = ({ currentLang, onLanguageChange }: LanguageToggle
       </motion.button>
 
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="absolute top-full right-0 mt-2 bg-card rounded-xl shadow-card-hover border border-border overflow-hidden z-50 min-w-[140px]"
-        >
-          {languages.map((lang) => (
-            <button
-              key={lang.code}
-              onClick={() => {
-                onLanguageChange(lang.code);
-                setIsOpen(false);
-              }}
-              className={`w-full px-4 py-3 text-left text-sm font-medium hover:bg-muted transition-colors flex items-center gap-2 ${
-                currentLang === lang.code ? 'bg-primary/10 text-primary' : ''
-              }`}
-            >
-              <span>{lang.flag}</span>
-              <span>{lang.name}</span>
-            </button>
-          ))}
-        </motion.div>
+        <>
+          {/* Backdrop to close dropdown */}
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={() => setIsOpen(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute top-full right-0 mt-2 bg-card rounded-xl shadow-card-hover border border-border overflow-hidden z-50 min-w-[140px]"
+          >
+            {languages.map((lang) => (
+              <button
+                key={lang.code}
+                onClick={() => handleLanguageChange(lang.code)}
+                className={`w-full px-4 py-3 text-left text-sm font-medium hover:bg-muted transition-colors flex items-center gap-2 ${
+                  currentLang === lang.code ? 'bg-primary/10 text-primary' : ''
+                }`}
+              >
+                <span>{lang.flag}</span>
+                <span>{lang.name}</span>
+              </button>
+            ))}
+          </motion.div>
+        </>
       )}
     </div>
   );
