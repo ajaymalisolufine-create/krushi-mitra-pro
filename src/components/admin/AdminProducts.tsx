@@ -8,8 +8,17 @@ import {
   Package,
   Filter,
   Loader2,
+  ChevronDown,
 } from 'lucide-react';
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, type Product } from '@/hooks/useProducts';
+import { Textarea } from '@/components/ui/textarea';
+
+const indianStates = [
+  'Maharashtra', 'Karnataka', 'Gujarat', 'Madhya Pradesh', 'Rajasthan',
+  'Punjab', 'Uttar Pradesh', 'Tamil Nadu', 'Andhra Pradesh', 'Telangana',
+  'Kerala', 'West Bengal', 'Bihar', 'Odisha', 'Haryana', 'Jharkhand',
+  'Chhattisgarh', 'Assam', 'Uttarakhand', 'Himachal Pradesh', 'Goa'
+];
 
 export const AdminProducts = () => {
   const { data: products = [], isLoading } = useProducts();
@@ -25,11 +34,14 @@ export const AdminProducts = () => {
   const [formData, setFormData] = useState({
     name: '',
     tagline: '',
+    description: '',
     category: 'fertilizers',
     crops: '',
     dosage: '',
     mrp: '',
     status: 'active',
+    benefits: '',
+    available_states: [] as string[],
   });
 
   const filteredProducts = products.filter((p) =>
@@ -47,11 +59,14 @@ export const AdminProducts = () => {
     setFormData({
       name: product.name,
       tagline: product.tagline || '',
+      description: product.description || '',
       category: product.category,
       crops: product.crops?.join(', ') || '',
       dosage: product.dosage || '',
       mrp: product.mrp.toString(),
       status: product.status,
+      benefits: product.benefits?.join('\n') || '',
+      available_states: product.available_states || [],
     });
     setShowModal(true);
   };
@@ -61,13 +76,25 @@ export const AdminProducts = () => {
     setFormData({
       name: '',
       tagline: '',
+      description: '',
       category: 'fertilizers',
       crops: '',
       dosage: '',
       mrp: '',
       status: 'active',
+      benefits: '',
+      available_states: [],
     });
     setShowModal(true);
+  };
+
+  const toggleState = (state: string) => {
+    setFormData(prev => ({
+      ...prev,
+      available_states: prev.available_states.includes(state)
+        ? prev.available_states.filter(s => s !== state)
+        : [...prev.available_states, state]
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -76,7 +103,7 @@ export const AdminProducts = () => {
     const productData = {
       name: formData.name,
       tagline: formData.tagline || null,
-      description: null,
+      description: formData.description || null,
       category: formData.category,
       crops: formData.crops.split(',').map(c => c.trim()).filter(Boolean),
       dosage: formData.dosage || null,
@@ -84,6 +111,8 @@ export const AdminProducts = () => {
       image_url: null,
       icon: 'leaf',
       status: formData.status,
+      benefits: formData.benefits.split('\n').map(b => b.trim()).filter(Boolean),
+      available_states: formData.available_states.length > 0 ? formData.available_states : [],
     };
 
     if (editingProduct) {
@@ -148,7 +177,7 @@ export const AdminProducts = () => {
               <tr>
                 <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground">Product</th>
                 <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground hidden md:table-cell">Category</th>
-                <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground hidden lg:table-cell">Dosage</th>
+                <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground hidden lg:table-cell">States</th>
                 <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground">MRP</th>
                 <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground">Status</th>
                 <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">Actions</th>
@@ -179,7 +208,13 @@ export const AdminProducts = () => {
                       {product.category}
                     </span>
                   </td>
-                  <td className="px-4 py-4 hidden lg:table-cell text-sm">{product.dosage}</td>
+                  <td className="px-4 py-4 hidden lg:table-cell">
+                    <span className="text-xs text-muted-foreground">
+                      {product.available_states?.length > 0 
+                        ? `${product.available_states.length} states`
+                        : 'All states'}
+                    </span>
+                  </td>
                   <td className="px-4 py-4 font-semibold">₹{product.mrp}</td>
                   <td className="px-4 py-4">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -220,48 +255,26 @@ export const AdminProducts = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-card rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            className="bg-card rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
           >
             <h2 className="text-xl font-bold mb-4">
               {editingProduct ? 'Edit Product' : 'Add New Product'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Product Name</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="e.g., THUNDER"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Tagline</label>
-                <input
-                  type="text"
-                  value={formData.tagline}
-                  onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="Product description"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Category</label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  <label className="block text-sm font-medium mb-1">Product Name *</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="fertilizers">Fertilizers</option>
-                    <option value="bio-stimulants">Bio-Stimulants</option>
-                    <option value="plant-protection">Plant Protection</option>
-                  </select>
+                    placeholder="e.g., THUNDER"
+                    required
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">MRP (₹)</label>
+                  <label className="block text-sm font-medium mb-1">MRP (₹) *</label>
                   <input
                     type="number"
                     value={formData.mrp}
@@ -272,16 +285,64 @@ export const AdminProducts = () => {
                   />
                 </div>
               </div>
+
               <div>
-                <label className="block text-sm font-medium mb-1">Dosage</label>
+                <label className="block text-sm font-medium mb-1">Tagline</label>
                 <input
                   type="text"
-                  value={formData.dosage}
-                  onChange={(e) => setFormData({ ...formData, dosage: e.target.value })}
+                  value={formData.tagline}
+                  onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="2ml/L"
+                  placeholder="Short product description"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Full Description</label>
+                <Textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary min-h-[80px]"
+                  placeholder="Detailed product description..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Benefits (one per line)</label>
+                <Textarea
+                  value={formData.benefits}
+                  onChange={(e) => setFormData({ ...formData, benefits: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary min-h-[100px]"
+                  placeholder="Increases yield by 20%&#10;Improves root growth&#10;Enhances soil health"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Category</label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="fertilizers">Fertilizers</option>
+                    <option value="biostimulants">Bio-Stimulants</option>
+                    <option value="pesticides">Pesticides</option>
+                    <option value="plant-protection">Plant Protection</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Dosage</label>
+                  <input
+                    type="text"
+                    value={formData.dosage}
+                    onChange={(e) => setFormData({ ...formData, dosage: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="2ml/L"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium mb-1">Recommended Crops (comma-separated)</label>
                 <input
@@ -289,9 +350,33 @@ export const AdminProducts = () => {
                   value={formData.crops}
                   onChange={(e) => setFormData({ ...formData, crops: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="Grape, Pomegranate"
+                  placeholder="Grape, Pomegranate, Cotton"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Available in States (leave empty for all)</label>
+                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 bg-muted rounded-xl border border-border">
+                  {indianStates.map((state) => (
+                    <button
+                      key={state}
+                      type="button"
+                      onClick={() => toggleState(state)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                        formData.available_states.includes(state)
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-card border border-border hover:bg-muted'
+                      }`}
+                    >
+                      {state}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Selected: {formData.available_states.length > 0 ? formData.available_states.join(', ') : 'All states'}
+                </p>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium mb-1">Status</label>
                 <select
@@ -303,6 +388,7 @@ export const AdminProducts = () => {
                   <option value="draft">Draft</option>
                 </select>
               </div>
+
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
