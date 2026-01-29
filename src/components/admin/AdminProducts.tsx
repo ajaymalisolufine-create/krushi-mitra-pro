@@ -8,10 +8,12 @@ import {
   Package,
   Filter,
   Loader2,
-  ChevronDown,
+  TrendingUp,
+  Star,
 } from 'lucide-react';
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, type Product } from '@/hooks/useProducts';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 
 const indianStates = [
   'Maharashtra', 'Karnataka', 'Gujarat', 'Madhya Pradesh', 'Rajasthan',
@@ -42,6 +44,8 @@ export const AdminProducts = () => {
     status: 'active',
     benefits: '',
     available_states: [] as string[],
+    is_trending: false,
+    is_best_seller: false,
   });
 
   const filteredProducts = products.filter((p) =>
@@ -67,6 +71,8 @@ export const AdminProducts = () => {
       status: product.status,
       benefits: product.benefits?.join('\n') || '',
       available_states: product.available_states || [],
+      is_trending: product.is_trending || false,
+      is_best_seller: product.is_best_seller || false,
     });
     setShowModal(true);
   };
@@ -84,6 +90,8 @@ export const AdminProducts = () => {
       status: 'active',
       benefits: '',
       available_states: [],
+      is_trending: false,
+      is_best_seller: false,
     });
     setShowModal(true);
   };
@@ -113,6 +121,8 @@ export const AdminProducts = () => {
       status: formData.status,
       benefits: formData.benefits.split('\n').map(b => b.trim()).filter(Boolean),
       available_states: formData.available_states.length > 0 ? formData.available_states : [],
+      is_trending: formData.is_trending,
+      is_best_seller: formData.is_best_seller,
     };
 
     if (editingProduct) {
@@ -177,7 +187,7 @@ export const AdminProducts = () => {
               <tr>
                 <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground">Product</th>
                 <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground hidden md:table-cell">Category</th>
-                <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground hidden lg:table-cell">States</th>
+                <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground hidden lg:table-cell">Tags</th>
                 <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground">MRP</th>
                 <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground">Status</th>
                 <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">Actions</th>
@@ -209,11 +219,21 @@ export const AdminProducts = () => {
                     </span>
                   </td>
                   <td className="px-4 py-4 hidden lg:table-cell">
-                    <span className="text-xs text-muted-foreground">
-                      {product.available_states?.length > 0 
-                        ? `${product.available_states.length} states`
-                        : 'All states'}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      {product.is_trending && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary/20 text-secondary text-xs">
+                          <TrendingUp className="w-3 h-3" /> Trending
+                        </span>
+                      )}
+                      {product.is_best_seller && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-harvest-gold/20 text-accent text-xs">
+                          <Star className="w-3 h-3" /> Bestseller
+                        </span>
+                      )}
+                      {!product.is_trending && !product.is_best_seller && (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-4 font-semibold">₹{product.mrp}</td>
                   <td className="px-4 py-4">
@@ -387,6 +407,30 @@ export const AdminProducts = () => {
                   <option value="active">Active</option>
                   <option value="draft">Draft</option>
                 </select>
+              </div>
+
+              {/* Trending & Best Seller Toggles */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-xl border border-border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-secondary" />
+                    <span className="text-sm font-medium">Trending Product</span>
+                  </div>
+                  <Switch
+                    checked={formData.is_trending}
+                    onCheckedChange={(checked) => setFormData({ ...formData, is_trending: checked })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Star className="w-4 h-4 text-harvest-gold" />
+                    <span className="text-sm font-medium">Best Seller</span>
+                  </div>
+                  <Switch
+                    checked={formData.is_best_seller}
+                    onCheckedChange={(checked) => setFormData({ ...formData, is_best_seller: checked })}
+                  />
+                </div>
               </div>
 
               <div className="flex gap-3 pt-4">

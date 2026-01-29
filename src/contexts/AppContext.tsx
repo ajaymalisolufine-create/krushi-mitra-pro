@@ -13,6 +13,8 @@ interface AppContextType {
   isAuthenticated: boolean;
   signOut: () => Promise<void>;
   trackInteraction: (screenName: string, interactionType: string, data?: Record<string, unknown>) => Promise<void>;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -22,6 +24,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [selectedCrop, setSelectedCrop] = useState<string | null>(() => localStorage.getItem('selected_crop'));
   const [user, setUser] = useState<User | null>(null);
   const [phone, setPhone] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('home');
 
   useEffect(() => {
     // Set up auth listener BEFORE checking session
@@ -89,6 +92,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       isAuthenticated: !!user,
       signOut,
       trackInteraction,
+      activeTab,
+      setActiveTab,
     }}>
       {children}
     </AppContext.Provider>
