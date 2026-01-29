@@ -15,9 +15,8 @@ import { useApp } from '@/contexts/AppContext';
 type OnboardingStep = 'splash' | 'language' | 'crop' | 'login' | 'main';
 
 const Index = () => {
-  const { language, setLanguage, selectedCrop, isAuthenticated, trackInteraction } = useApp();
+  const { language, setLanguage, selectedCrop, trackInteraction, activeTab, setActiveTab } = useApp();
   const [step, setStep] = useState<OnboardingStep>('splash');
-  const [activeTab, setActiveTab] = useState('dashboard');
 
   // Check if onboarding is complete
   useEffect(() => {
@@ -62,7 +61,7 @@ const Index = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard':
+      case 'home':
         return <DashboardView />;
       case 'products':
         return <ProductsGrid />;

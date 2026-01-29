@@ -11,7 +11,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { id: 'dashboard', icon: Home, labelMr: 'होम', labelHi: 'होम', labelEn: 'Home' },
+  { id: 'home', icon: Home, labelMr: 'होम', labelHi: 'होम', labelEn: 'Home' },
   { id: 'ai', icon: Bot, labelMr: 'AI', labelHi: 'AI', labelEn: 'AI' },
   { id: 'products', icon: Package, labelMr: 'उत्पादने', labelHi: 'उत्पाद', labelEn: 'Products' },
   { id: 'contact', icon: Phone, labelMr: 'संपर्क', labelHi: 'संपर्क', labelEn: 'Contact' },

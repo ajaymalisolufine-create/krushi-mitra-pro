@@ -185,6 +185,8 @@ export type Database = {
           icon: string | null
           id: string
           image_url: string | null
+          is_best_seller: boolean
+          is_trending: boolean
           mrp: number
           name: string
           status: string
@@ -202,6 +204,8 @@ export type Database = {
           icon?: string | null
           id?: string
           image_url?: string | null
+          is_best_seller?: boolean
+          is_trending?: boolean
           mrp?: number
           name: string
           status?: string
@@ -219,6 +223,8 @@ export type Database = {
           icon?: string | null
           id?: string
           image_url?: string | null
+          is_best_seller?: boolean
+          is_trending?: boolean
           mrp?: number
           name?: string
           status?: string

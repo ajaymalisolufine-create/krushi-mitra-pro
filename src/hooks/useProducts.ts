@@ -8,14 +8,16 @@ export interface Product {
   tagline: string | null;
   description: string | null;
   category: string;
-  crops: string[];
+  crops: string[] | null;
   dosage: string | null;
   mrp: number;
   image_url: string | null;
   icon: string | null;
   status: string;
-  benefits: string[];
-  available_states: string[];
+  benefits: string[] | null;
+  available_states: string[] | null;
+  is_trending: boolean;
+  is_best_seller: boolean;
   created_at: string;
   updated_at: string;
 }
