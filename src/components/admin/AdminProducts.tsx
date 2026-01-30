@@ -41,6 +41,7 @@ export const AdminProducts = () => {
     crops: '',
     dosage: '',
     mrp: '',
+    image_url: '',
     status: 'active',
     benefits: '',
     available_states: [] as string[],
@@ -68,6 +69,7 @@ export const AdminProducts = () => {
       crops: product.crops?.join(', ') || '',
       dosage: product.dosage || '',
       mrp: product.mrp.toString(),
+      image_url: product.image_url || '',
       status: product.status,
       benefits: product.benefits?.join('\n') || '',
       available_states: product.available_states || [],
@@ -87,6 +89,7 @@ export const AdminProducts = () => {
       crops: '',
       dosage: '',
       mrp: '',
+      image_url: '',
       status: 'active',
       benefits: '',
       available_states: [],
@@ -116,7 +119,7 @@ export const AdminProducts = () => {
       crops: formData.crops.split(',').map(c => c.trim()).filter(Boolean),
       dosage: formData.dosage || null,
       mrp: parseFloat(formData.mrp) || 0,
-      image_url: null,
+      image_url: formData.image_url || null,
       icon: 'leaf',
       status: formData.status,
       benefits: formData.benefits.split('\n').map(b => b.trim()).filter(Boolean),
@@ -372,6 +375,27 @@ export const AdminProducts = () => {
                   className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="Grape, Pomegranate, Cotton"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Product Image URL</label>
+                <input
+                  type="url"
+                  value={formData.image_url}
+                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="https://example.com/product-image.jpg"
+                />
+                {formData.image_url && (
+                  <div className="mt-2">
+                    <img 
+                      src={formData.image_url} 
+                      alt="Product preview" 
+                      className="w-20 h-20 object-cover rounded-lg border border-border"
+                      onError={(e) => (e.currentTarget.style.display = 'none')}
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
