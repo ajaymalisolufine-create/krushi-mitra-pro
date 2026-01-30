@@ -1,7 +1,65 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Globe, Bell, Shield, Database, Palette, Save } from 'lucide-react';
+import { Settings, Globe, Bell, Shield, Save, UserPlus, Loader2, CheckCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export const AdminSettings = () => {
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
+  const [adminCreated, setAdminCreated] = useState(false);
+
+  const handleCreateAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newAdminEmail || !newAdminPassword) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    if (newAdminPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+
+    setIsCreatingAdmin(true);
+
+    try {
+      // Create user account
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: newAdminEmail,
+        password: newAdminPassword,
+      });
+
+      if (authError) throw authError;
+
+      if (!authData.user) {
+        throw new Error('Failed to create user');
+      }
+
+      // Add admin role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: authData.user.id,
+          role: 'admin' as const,
+        });
+
+      if (roleError) throw roleError;
+
+      toast.success('Admin account created successfully!');
+      setAdminCreated(true);
+      setNewAdminEmail('');
+      setNewAdminPassword('');
+    } catch (error: any) {
+      console.error('Error creating admin:', error);
+      toast.error(error.message || 'Failed to create admin');
+    } finally {
+      setIsCreatingAdmin(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -11,10 +69,89 @@ export const AdminSettings = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Create Admin Account - First for easy access */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-card rounded-2xl p-5 shadow-card border border-border/50 lg:col-span-2"
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-secondary/20 flex items-center justify-center">
+              <UserPlus className="w-5 h-5 text-secondary" />
+            </div>
+            <div>
+              <h2 className="font-semibold">Create Admin Account</h2>
+              <p className="text-sm text-muted-foreground">Add a new administrator to manage the panel</p>
+            </div>
+          </div>
+          
+          {adminCreated ? (
+            <div className="p-4 bg-secondary/10 rounded-xl flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 text-secondary" />
+              <div>
+                <p className="font-medium text-secondary">Admin account created!</p>
+                <p className="text-sm text-muted-foreground">You can now log in with the new credentials.</p>
+              </div>
+              <button
+                onClick={() => setAdminCreated(false)}
+                className="ml-auto text-sm text-primary hover:underline"
+              >
+                Create another
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleCreateAdmin} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Email *</label>
+                <input
+                  type="email"
+                  value={newAdminEmail}
+                  onChange={(e) => setNewAdminEmail(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="admin@example.com"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Password *</label>
+                <input
+                  type="password"
+                  value={newAdminPassword}
+                  onChange={(e) => setNewAdminPassword(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Min 6 characters"
+                  minLength={6}
+                  required
+                />
+              </div>
+              <div className="flex items-end">
+                <button
+                  type="submit"
+                  disabled={isCreatingAdmin}
+                  className="w-full px-4 py-2.5 bg-secondary text-secondary-foreground rounded-xl font-medium hover:bg-secondary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isCreatingAdmin ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4" />
+                      Create Admin
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
+        </motion.div>
+
         {/* General Settings */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
           className="bg-card rounded-2xl p-5 shadow-card border border-border/50"
         >
           <div className="flex items-center gap-3 mb-4">
@@ -55,7 +192,7 @@ export const AdminSettings = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.2 }}
           className="bg-card rounded-2xl p-5 shadow-card border border-border/50"
         >
           <div className="flex items-center gap-3 mb-4">
@@ -91,7 +228,7 @@ export const AdminSettings = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.3 }}
           className="bg-card rounded-2xl p-5 shadow-card border border-border/50"
         >
           <div className="flex items-center gap-3 mb-4">
@@ -113,10 +250,6 @@ export const AdminSettings = () => {
               <span className="text-sm">Promotional Notifications</span>
               <input type="checkbox" defaultChecked className="rounded text-primary" />
             </label>
-            <label className="flex items-center justify-between">
-              <span className="text-sm">Crop Calendar Reminders</span>
-              <input type="checkbox" defaultChecked className="rounded text-primary" />
-            </label>
           </div>
         </motion.div>
 
@@ -124,7 +257,7 @@ export const AdminSettings = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.4 }}
           className="bg-card rounded-2xl p-5 shadow-card border border-border/50"
         >
           <div className="flex items-center gap-3 mb-4">
@@ -134,14 +267,6 @@ export const AdminSettings = () => {
             <h2 className="font-semibold">Security</h2>
           </div>
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Admin Email</label>
-              <input
-                type="email"
-                defaultValue="admin@solufine.com"
-                className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
             <button className="w-full px-4 py-2.5 rounded-xl border border-border hover:bg-muted transition-colors text-sm font-medium">
               Change Password
             </button>
@@ -156,7 +281,7 @@ export const AdminSettings = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
+        transition={{ delay: 0.5 }}
         className="flex justify-end"
       >
         <button className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -15,7 +15,12 @@ import {
   X,
   Sprout,
   ChevronRight,
+  Loader2,
 } from 'lucide-react';
+import { AdminLogin } from './AdminLogin';
+import { AdminSetup } from './AdminSetup';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
@@ -29,10 +34,32 @@ const menuItems = [
 ];
 
 export const AdminLayout = () => {
+  const { user, isAdmin, isLoading, signOut } = useAdminAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [hasAdmins, setHasAdmins] = useState<boolean | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Check if any admins exist
+  useEffect(() => {
+    const checkAdmins = async () => {
+      try {
+        const { count, error } = await supabase
+          .from('user_roles')
+          .select('*', { count: 'exact', head: true })
+          .eq('role', 'admin');
+
+        if (error) throw error;
+        setHasAdmins((count || 0) > 0);
+      } catch (err) {
+        console.error('Error checking admins:', err);
+        setHasAdmins(true); // Assume admins exist on error to show login
+      }
+    };
+
+    checkAdmins();
+  }, []);
 
   const isActive = (path: string) => {
     if (path === '/admin') {
@@ -41,9 +68,28 @@ export const AdminLayout = () => {
     return location.pathname.startsWith(path);
   };
 
-  const handleLogout = () => {
-    navigate('/');
+  const handleLogout = async () => {
+    await signOut();
   };
+
+  // Loading state
+  if (isLoading || hasAdmins === null) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // No admins exist - show setup
+  if (!hasAdmins) {
+    return <AdminSetup onSetupComplete={() => window.location.reload()} />;
+  }
+
+  // Not authenticated or not admin
+  if (!user || !isAdmin) {
+    return <AdminLogin onLoginSuccess={() => window.location.reload()} />;
+  }
 
   return (
     <div className="min-h-screen bg-muted/30 flex">
