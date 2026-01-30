@@ -23,7 +23,7 @@ export const AppHeader = ({
             <Sprout className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-sm font-bold text-primary leading-tight">Solufine Agritec</h1>
+            <h1 className="text-sm font-bold text-primary leading-tight">Solufine Agritech</h1>
             <p className="text-[10px] font-medium text-muted-foreground leading-tight">Krushi Mitra</p>
           </div>
         </motion.div>
