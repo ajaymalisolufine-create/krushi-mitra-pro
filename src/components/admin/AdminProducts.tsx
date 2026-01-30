@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   Plus,
@@ -10,10 +10,14 @@ import {
   Loader2,
   TrendingUp,
   Star,
+  Upload,
+  X,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, type Product } from '@/hooks/useProducts';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { useImageUpload } from '@/hooks/useImageUpload';
 
 const indianStates = [
   'Maharashtra', 'Karnataka', 'Gujarat', 'Madhya Pradesh', 'Rajasthan',
@@ -27,6 +31,8 @@ export const AdminProducts = () => {
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
+  const { uploadImage, isUploading } = useImageUpload();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -106,6 +112,25 @@ export const AdminProducts = () => {
         ? prev.available_states.filter(s => s !== state)
         : [...prev.available_states, state]
     }));
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const imageUrl = await uploadImage(file);
+    if (imageUrl) {
+      setFormData(prev => ({ ...prev, image_url: imageUrl }));
+    }
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const clearImage = () => {
+    setFormData(prev => ({ ...prev, image_url: '' }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -378,24 +403,69 @@ export const AdminProducts = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Product Image URL</label>
+                <label className="block text-sm font-medium mb-1">Product Image</label>
+                
+                {/* Hidden file input */}
                 <input
-                  type="url"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="https://example.com/product-image.jpg"
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  onChange={handleImageUpload}
+                  className="hidden"
                 />
-                {formData.image_url && (
-                  <div className="mt-2">
+                
+                {/* Image preview or upload area */}
+                {formData.image_url ? (
+                  <div className="relative inline-block">
                     <img 
                       src={formData.image_url} 
                       alt="Product preview" 
-                      className="w-20 h-20 object-cover rounded-lg border border-border"
-                      onError={(e) => (e.currentTarget.style.display = 'none')}
+                      className="w-32 h-32 object-cover rounded-xl border border-border"
+                      onError={(e) => {
+                        e.currentTarget.src = '/placeholder.svg';
+                      }}
                     />
+                    <button
+                      type="button"
+                      onClick={clearImage}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-white rounded-full flex items-center justify-center hover:bg-destructive/80"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="w-full h-32 border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center gap-2 hover:border-primary hover:bg-muted/50 transition-colors disabled:opacity-50"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
+                        <span className="text-sm text-muted-foreground">Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-8 h-8 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Click to upload image</span>
+                        <span className="text-xs text-muted-foreground">JPG, PNG, WebP, GIF (max 5MB)</span>
+                      </>
+                    )}
+                  </button>
                 )}
+
+                {/* URL input as alternative */}
+                <div className="mt-3">
+                  <label className="block text-xs text-muted-foreground mb-1">Or paste image URL</label>
+                  <input
+                    type="url"
+                    value={formData.image_url}
+                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                    className="w-full px-4 py-2 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                    placeholder="https://example.com/product-image.jpg"
+                  />
+                </div>
               </div>
 
               <div>
