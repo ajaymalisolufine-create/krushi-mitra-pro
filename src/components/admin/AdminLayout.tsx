@@ -83,12 +83,19 @@ export const AdminLayout = () => {
 
   // No admins exist - show setup
   if (!hasAdmins) {
-    return <AdminSetup onSetupComplete={() => window.location.reload()} />;
+    return <AdminSetup onSetupComplete={() => setHasAdmins(true)} />;
   }
 
   // Not authenticated or not admin
   if (!user || !isAdmin) {
-    return <AdminLogin onLoginSuccess={() => window.location.reload()} />;
+    return (
+      <AdminLogin
+        onLoginSuccess={() => {
+          // Avoid full page reloads (they abort in-flight requests and can break login)
+          navigate('/admin');
+        }}
+      />
+    );
   }
 
   return (
