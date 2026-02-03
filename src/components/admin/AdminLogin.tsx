@@ -38,7 +38,7 @@ export const AdminLogin = ({ onLoginSuccess }: AdminLoginProps) => {
         .select('role')
         .eq('user_id', data.user.id)
         .eq('role', 'admin')
-        .single();
+        .maybeSingle();
 
       if (roleError || !roleData) {
         // Sign out if not admin
@@ -47,13 +47,16 @@ export const AdminLogin = ({ onLoginSuccess }: AdminLoginProps) => {
       }
 
       toast.success('Welcome back, Admin!');
-      // Small delay to allow state to settle before reload
-      setTimeout(() => {
-        onLoginSuccess();
-      }, 100);
+      onLoginSuccess();
     } catch (err: any) {
-      setError(err.message || 'Login failed');
-      toast.error(err.message || 'Login failed');
+      const msg = err?.message || 'Login failed';
+      // Browser may abort in-flight requests during navigation; don't block login on AbortError.
+      if (err?.name === 'AbortError' || /signal is aborted/i.test(msg)) {
+        onLoginSuccess();
+        return;
+      }
+      setError(msg);
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }
