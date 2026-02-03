@@ -8,52 +8,78 @@ export const useAdminAuth = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!isMounted) return;
+        
         const currentUser = session?.user ?? null;
         setUser(currentUser);
         
         if (currentUser) {
-          // Check admin role
+          // Check admin role with try-catch to handle aborted requests
+          try {
+            const { data: roleData } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', currentUser.id)
+              .eq('role', 'admin')
+              .maybeSingle();
+
+            if (isMounted) {
+              setIsAdmin(!!roleData);
+            }
+          } catch (error) {
+            // Ignore aborted requests
+            console.log('Auth check interrupted');
+          }
+        } else {
+          setIsAdmin(false);
+        }
+        
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    );
+
+    // Then check current session
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!isMounted) return;
+        
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        
+        if (currentUser) {
           const { data: roleData } = await supabase
             .from('user_roles')
             .select('role')
             .eq('user_id', currentUser.id)
             .eq('role', 'admin')
-            .single();
+            .maybeSingle();
 
-          setIsAdmin(!!roleData);
-        } else {
-          setIsAdmin(false);
-        }
-        
-        setIsLoading(false);
-      }
-    );
-
-    // Then check current session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      
-      if (currentUser) {
-        supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', currentUser.id)
-          .eq('role', 'admin')
-          .single()
-          .then(({ data: roleData }) => {
+          if (isMounted) {
             setIsAdmin(!!roleData);
-            setIsLoading(false);
-          });
-      } else {
-        setIsLoading(false);
+          }
+        }
+      } catch (error) {
+        // Ignore aborted requests
+        console.log('Session check interrupted');
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
-    });
+    };
+
+    checkSession();
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);

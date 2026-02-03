@@ -47,7 +47,10 @@ export const AdminLogin = ({ onLoginSuccess }: AdminLoginProps) => {
       }
 
       toast.success('Welcome back, Admin!');
-      onLoginSuccess();
+      // Small delay to allow state to settle before reload
+      setTimeout(() => {
+        onLoginSuccess();
+      }, 100);
     } catch (err: any) {
       setError(err.message || 'Login failed');
       toast.error(err.message || 'Login failed');
