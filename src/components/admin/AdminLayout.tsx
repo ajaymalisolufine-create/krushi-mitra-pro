@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -34,31 +34,39 @@ const menuItems = [
 ];
 
 export const AdminLayout = () => {
-  const { user, isAdmin, isLoading, signOut } = useAdminAuth();
+  const { user, isAdmin, isLoading: authLoading, signOut } = useAdminAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hasAdmins, setHasAdmins] = useState<boolean | null>(null);
+  const [adminCheckDone, setAdminCheckDone] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Check if any admins exist
-  useEffect(() => {
-    const checkAdmins = async () => {
-      try {
-        // Must be checked server-side; anonymous clients can't read roles table.
-        const { data, error } = await supabase.functions.invoke('admin-bootstrap', {
-          body: { action: 'status' },
-        });
-        if (error) throw error;
-        setHasAdmins(!!data?.hasAdmins);
-      } catch (err) {
-        console.error('Error checking admins:', err);
-        setHasAdmins(true); // Assume admins exist on error to show login
-      }
-    };
+  // Check if any admins exist (with timeout to prevent infinite loading)
+  const checkAdmins = useCallback(async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
 
-    checkAdmins();
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-bootstrap', {
+        body: { action: 'status' },
+      });
+      clearTimeout(timeoutId);
+      if (error) throw error;
+      setHasAdmins(!!data?.hasAdmins);
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      console.error('Error checking admins:', err);
+      // On error/timeout, assume admins exist (show login instead of setup)
+      setHasAdmins(true);
+    } finally {
+      setAdminCheckDone(true);
+    }
   }, []);
+
+  useEffect(() => {
+    checkAdmins();
+  }, [checkAdmins]);
 
   const isActive = (path: string) => {
     if (path === '/admin') {
@@ -71,11 +79,14 @@ export const AdminLayout = () => {
     await signOut();
   };
 
-  // Loading state
-  if (isLoading || hasAdmins === null) {
+  // Show loading only while initial checks are pending
+  const isInitializing = !adminCheckDone || (authLoading && hasAdmins);
+
+  if (isInitializing) {
     return (
-      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+      <div className="min-h-screen bg-muted/30 flex flex-col items-center justify-center gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Loading admin panel...</p>
       </div>
     );
   }
