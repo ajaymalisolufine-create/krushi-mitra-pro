@@ -50,11 +50,6 @@ export const AdminLogin = ({ onLoginSuccess }: AdminLoginProps) => {
       onLoginSuccess();
     } catch (err: any) {
       const msg = err?.message || 'Login failed';
-      // Browser may abort in-flight requests during navigation; don't block login on AbortError.
-      if (err?.name === 'AbortError' || /signal is aborted/i.test(msg)) {
-        onLoginSuccess();
-        return;
-      }
       setError(msg);
       toast.error(msg);
     } finally {

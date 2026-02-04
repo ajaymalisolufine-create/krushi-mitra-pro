@@ -45,13 +45,12 @@ export const AdminLayout = () => {
   useEffect(() => {
     const checkAdmins = async () => {
       try {
-        const { count, error } = await supabase
-          .from('user_roles')
-          .select('*', { count: 'exact', head: true })
-          .eq('role', 'admin');
-
+        // Must be checked server-side; anonymous clients can't read roles table.
+        const { data, error } = await supabase.functions.invoke('admin-bootstrap', {
+          body: { action: 'status' },
+        });
         if (error) throw error;
-        setHasAdmins((count || 0) > 0);
+        setHasAdmins(!!data?.hasAdmins);
       } catch (err) {
         console.error('Error checking admins:', err);
         setHasAdmins(true); // Assume admins exist on error to show login
