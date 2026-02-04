@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sprout, Mail, Lock, UserPlus, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,31 +13,8 @@ export const AdminSetup = ({ onSetupComplete }: AdminSetupProps) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isCheckingAdmins, setIsCheckingAdmins] = useState(true);
-  const [hasAdmins, setHasAdmins] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-
-  // Check if any admins exist
-  useEffect(() => {
-    const checkAdmins = async () => {
-      try {
-        const { count, error } = await supabase
-          .from('user_roles')
-          .select('*', { count: 'exact', head: true })
-          .eq('role', 'admin');
-
-        if (error) throw error;
-        setHasAdmins((count || 0) > 0);
-      } catch (err) {
-        console.error('Error checking admins:', err);
-      } finally {
-        setIsCheckingAdmins(false);
-      }
-    };
-
-    checkAdmins();
-  }, []);
 
   const handleSetup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,27 +33,11 @@ export const AdminSetup = ({ onSetupComplete }: AdminSetupProps) => {
     setIsLoading(true);
 
     try {
-      // Create user account
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
+      // Create FIRST admin using server-side bootstrap (roles table isn't writable from client)
+      const { error: bootstrapError } = await supabase.functions.invoke('admin-bootstrap', {
+        body: { action: 'bootstrap', email, password },
       });
-
-      if (authError) throw authError;
-
-      if (!authData.user) {
-        throw new Error('Failed to create user');
-      }
-
-      // Add admin role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: authData.user.id,
-          role: 'admin' as const,
-        });
-
-      if (roleError) throw roleError;
+      if (bootstrapError) throw bootstrapError;
 
       setSuccess(true);
       toast.success('Admin account created successfully!');
@@ -92,19 +53,6 @@ export const AdminSetup = ({ onSetupComplete }: AdminSetupProps) => {
       setIsLoading(false);
     }
   };
-
-  if (isCheckingAdmins) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // If admins already exist, this component shouldn't be shown
-  if (hasAdmins) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
