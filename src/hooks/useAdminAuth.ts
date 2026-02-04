@@ -14,6 +14,9 @@ export const useAdminAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!isMounted) return;
+
+        // Any auth change triggers a fresh admin-role check
+        setIsLoading(true);
         
         const currentUser = session?.user ?? null;
         setUser(currentUser);
@@ -47,6 +50,7 @@ export const useAdminAuth = () => {
 
     // Then check current session
     const checkSession = async () => {
+      setIsLoading(true);
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!isMounted) return;

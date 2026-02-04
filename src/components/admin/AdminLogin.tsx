@@ -32,21 +32,8 @@ export const AdminLogin = ({ onLoginSuccess }: AdminLoginProps) => {
         throw new Error('Login failed');
       }
 
-      // Check if user has admin role
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', data.user.id)
-        .eq('role', 'admin')
-        .maybeSingle();
-
-      if (roleError || !roleData) {
-        // Sign out if not admin
-        await supabase.auth.signOut();
-        throw new Error('Access denied. Admin privileges required.');
-      }
-
-      toast.success('Welcome back, Admin!');
+      // Avoid double role checks (AdminLayout/useAdminAuth will validate admin role)
+      toast.success('Signed in. Checking admin access...');
       onLoginSuccess();
     } catch (err: any) {
       const msg = err?.message || 'Login failed';
