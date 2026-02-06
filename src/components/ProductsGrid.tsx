@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, MapPin, Star, Zap, Sparkles, Shield, Loader2, Droplet, Leaf, X, Check, ChevronDown } from 'lucide-react';
+import { Package, MapPin, Star, Zap, Sparkles, Shield, Loader2, Droplet, Leaf, X, Check, ChevronDown, Filter } from 'lucide-react';
 import { useProducts, type Product } from '@/hooks/useProducts';
 import { useApp } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,15 @@ const cropMapping: Record<string, string[]> = {
   onion: ['कांदा', 'Onion', 'प्याज'],
 };
 
+const allCrops = [
+  { id: 'grapes', mr: 'द्राक्षे', hi: 'अंगूर', en: 'Grapes' },
+  { id: 'chickpea', mr: 'हरभरा', hi: 'चना', en: 'Chickpea' },
+  { id: 'cotton', mr: 'कापूस', hi: 'कपास', en: 'Cotton' },
+  { id: 'sugarcane', mr: 'ऊस', hi: 'गन्ना', en: 'Sugarcane' },
+  { id: 'pomegranate', mr: 'डाळिंब', hi: 'अनार', en: 'Pomegranate' },
+  { id: 'onion', mr: 'कांदा', hi: 'प्याज', en: 'Onion' },
+];
+
 const categories = [
   { key: 'all', mr: 'सर्व', hi: 'सभी', en: 'All' },
   { key: 'biostimulants', mr: 'जैव-उत्तेजक', hi: 'जैव-उत्तेजक', en: 'Biostimulants' },
@@ -53,11 +62,12 @@ interface ProductsGridProps {
 
 export const ProductsGrid = ({ onProductClick }: ProductsGridProps) => {
   const { data: products = [], isLoading } = useProducts();
-  const { language, selectedCrop, trackInteraction } = useApp();
+  const { language, selectedCrops, setSelectedCrops, trackInteraction } = useApp();
   const [activeCategory, setActiveCategory] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedState, setSelectedState] = useState('Maharashtra');
   const [showStateSelector, setShowStateSelector] = useState(false);
+  const [showCropFilter, setShowCropFilter] = useState(false);
 
   const getText = (mr: string, hi: string, en: string) => {
     switch (language) {
@@ -67,15 +77,34 @@ export const ProductsGrid = ({ onProductClick }: ProductsGridProps) => {
     }
   };
 
-  // Filter products based on selected crop, category, and state
+  const getCropLabel = (crop: typeof allCrops[0]) => {
+    switch (language) {
+      case 'mr': return crop.mr;
+      case 'hi': return crop.hi;
+      default: return crop.en;
+    }
+  };
+
+  const toggleCropFilter = (cropId: string) => {
+    if (selectedCrops.includes(cropId)) {
+      setSelectedCrops(selectedCrops.filter(c => c !== cropId));
+    } else {
+      setSelectedCrops([...selectedCrops, cropId]);
+    }
+  };
+
+  // Filter products based on selected crops (multi-select), category, and state
   const filteredProducts = products
     .filter(p => p.status === 'active')
     .filter(p => {
-      if (!selectedCrop) return true;
-      const cropNames = cropMapping[selectedCrop] || [];
-      return p.crops?.some(productCrop => 
-        cropNames.some(name => productCrop.toLowerCase().includes(name.toLowerCase()))
-      ) ?? true;
+      if (selectedCrops.length === 0) return true;
+      // Check if product matches ANY of the selected crops
+      return selectedCrops.some(selectedCrop => {
+        const cropNames = cropMapping[selectedCrop] || [];
+        return p.crops?.some(productCrop => 
+          cropNames.some(name => productCrop.toLowerCase().includes(name.toLowerCase()))
+        ) ?? false;
+      });
     })
     .filter(p => {
       if (activeCategory === 'all') return true;
@@ -112,12 +141,66 @@ export const ProductsGrid = ({ onProductClick }: ProductsGridProps) => {
           <Package className="w-5 h-5 text-primary" />
           <h2 className="text-lg font-semibold">{getText('आमची उत्पादने', 'हमारे उत्पाद', 'Our Products')}</h2>
         </div>
-        {selectedCrop && (
-          <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-            {getText('पिकासाठी', 'फसल के लिए', 'For')} {selectedCrop}
-          </span>
-        )}
+        <button
+          onClick={() => setShowCropFilter(!showCropFilter)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+            selectedCrops.length > 0
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+          }`}
+        >
+          <Filter className="w-4 h-4" />
+          {selectedCrops.length > 0 
+            ? `${selectedCrops.length} ${getText('पिके', 'फसलें', 'crops')}`
+            : getText('पीक फिल्टर', 'फसल फ़िल्टर', 'Crop Filter')
+          }
+        </button>
       </div>
+
+      {/* Crop Multi-Select Filter */}
+      <AnimatePresence>
+        {showCropFilter && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="bg-card rounded-xl border border-border p-3">
+              <p className="text-sm font-medium mb-2">
+                {getText('पिके निवडा (एकापेक्षा जास्त)', 'फसलें चुनें (एक से अधिक)', 'Select Crops (Multiple)')}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {allCrops.map((crop) => {
+                  const isSelected = selectedCrops.includes(crop.id);
+                  return (
+                    <button
+                      key={crop.id}
+                      onClick={() => toggleCropFilter(crop.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                        isSelected
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-foreground hover:bg-muted/80'
+                      }`}
+                    >
+                      {isSelected && <Check className="w-3 h-3" />}
+                      {getCropLabel(crop)}
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedCrops.length > 0 && (
+                <button
+                  onClick={() => setSelectedCrops([])}
+                  className="mt-2 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  {getText('सर्व साफ करा', 'सभी साफ़ करें', 'Clear all')}
+                </button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* State Selector */}
       <div className="relative">

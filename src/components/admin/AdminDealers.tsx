@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Edit2, Trash2, MapPin, Phone, Mail, Search, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, MapPin, Phone, Mail, Search, Loader2, X } from 'lucide-react';
 import { useDealers, useCreateDealer, useUpdateDealer, useDeleteDealer, type Dealer } from '@/hooks/useDealers';
 
 export const AdminDealers = () => {
@@ -12,6 +12,7 @@ export const AdminDealers = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingDealer, setEditingDealer] = useState<Dealer | null>(null);
+  const [newPincode, setNewPincode] = useState('');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -22,13 +23,16 @@ export const AdminDealers = () => {
     email: '',
     lat: '',
     lng: '',
+    pincode: '',
+    serving_pincodes: [] as string[],
     status: 'active',
   });
 
   const filteredDealers = dealers.filter(
     (d) =>
       d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (d.city?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
+      (d.city?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+      (d.pincode?.includes(searchQuery) ?? false)
   );
 
   const handleDelete = (id: string) => {
@@ -47,6 +51,8 @@ export const AdminDealers = () => {
       email: dealer.email || '',
       lat: dealer.lat?.toString() || '',
       lng: dealer.lng?.toString() || '',
+      pincode: dealer.pincode || '',
+      serving_pincodes: dealer.serving_pincodes || [],
       status: dealer.status,
     });
     setShowModal(true);
@@ -62,9 +68,29 @@ export const AdminDealers = () => {
       email: '',
       lat: '',
       lng: '',
+      pincode: '',
+      serving_pincodes: [],
       status: 'active',
     });
+    setNewPincode('');
     setShowModal(true);
+  };
+
+  const addServingPincode = () => {
+    if (newPincode && /^[1-9][0-9]{5}$/.test(newPincode) && !formData.serving_pincodes.includes(newPincode)) {
+      setFormData(prev => ({
+        ...prev,
+        serving_pincodes: [...prev.serving_pincodes, newPincode]
+      }));
+      setNewPincode('');
+    }
+  };
+
+  const removeServingPincode = (pincode: string) => {
+    setFormData(prev => ({
+      ...prev,
+      serving_pincodes: prev.serving_pincodes.filter(p => p !== pincode)
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -78,6 +104,8 @@ export const AdminDealers = () => {
       email: formData.email || null,
       lat: formData.lat ? parseFloat(formData.lat) : null,
       lng: formData.lng ? parseFloat(formData.lng) : null,
+      pincode: formData.pincode || null,
+      serving_pincodes: formData.serving_pincodes.length > 0 ? formData.serving_pincodes : null,
       status: formData.status,
     };
 
@@ -122,7 +150,7 @@ export const AdminDealers = () => {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
         <input
           type="text"
-          placeholder="Search dealers by name or city..."
+          placeholder="Search dealers by name, city or pincode..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-card border border-border focus:outline-none focus:ring-2 focus:ring-primary"
@@ -169,7 +197,28 @@ export const AdminDealers = () => {
               </span>
             </div>
 
-            <p className="text-sm text-muted-foreground mb-3">{dealer.address}</p>
+            <p className="text-sm text-muted-foreground mb-2">{dealer.address}</p>
+
+            {/* Pincode Info */}
+            {(dealer.pincode || (dealer.serving_pincodes && dealer.serving_pincodes.length > 0)) && (
+              <div className="mb-3 p-2 bg-muted/50 rounded-lg">
+                {dealer.pincode && (
+                  <p className="text-xs text-primary font-medium mb-1">
+                    📍 Primary: {dealer.pincode}
+                  </p>
+                )}
+                {dealer.serving_pincodes && dealer.serving_pincodes.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    <span className="text-xs text-muted-foreground">Serves:</span>
+                    {dealer.serving_pincodes.map((pc) => (
+                      <span key={pc} className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                        {pc}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="space-y-1 text-sm mb-4">
               {dealer.phone && (
@@ -219,7 +268,7 @@ export const AdminDealers = () => {
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Dealer Name</label>
+                <label className="block text-sm font-medium mb-1">Dealer Name *</label>
                 <input
                   type="text"
                   value={formData.name}
@@ -251,6 +300,70 @@ export const AdminDealers = () => {
                   />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium mb-1">Primary Pincode</label>
+                  <input
+                    type="tel"
+                    value={formData.pincode}
+                    onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="416410"
+                    maxLength={6}
+                  />
+                </div>
+              </div>
+
+              {/* Serving Pincodes */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Serving Pincodes (Areas Covered)</label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="tel"
+                    value={newPincode}
+                    onChange={(e) => setNewPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Add pincode"
+                    maxLength={6}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addServingPincode();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={addServingPincode}
+                    className="px-4 py-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
+                  >
+                    Add
+                  </button>
+                </div>
+                {formData.serving_pincodes.length > 0 && (
+                  <div className="flex flex-wrap gap-2 p-2 bg-muted rounded-xl">
+                    {formData.serving_pincodes.map((pc) => (
+                      <span
+                        key={pc}
+                        className="flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-lg text-sm"
+                      >
+                        {pc}
+                        <button
+                          type="button"
+                          onClick={() => removeServingPincode(pc)}
+                          className="hover:text-destructive"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  Add all pincodes this dealer can serve
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
                   <label className="block text-sm font-medium mb-1">Phone</label>
                   <input
                     type="tel"
@@ -260,17 +373,18 @@ export const AdminDealers = () => {
                     placeholder="+91 98765 43210"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="dealer@email.com"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Email</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="dealer@email.com"
-                />
-              </div>
+
               <div>
                 <label className="block text-sm font-medium mb-1">Status</label>
                 <select

@@ -25,6 +25,8 @@ export type Database = {
           lng: number | null
           name: string
           phone: string | null
+          pincode: string | null
+          serving_pincodes: string[] | null
           status: string
           updated_at: string
         }
@@ -38,6 +40,8 @@ export type Database = {
           lng?: number | null
           name: string
           phone?: string | null
+          pincode?: string | null
+          serving_pincodes?: string[] | null
           status?: string
           updated_at?: string
         }
@@ -51,6 +55,8 @@ export type Database = {
           lng?: number | null
           name?: string
           phone?: string | null
+          pincode?: string | null
+          serving_pincodes?: string[] | null
           status?: string
           updated_at?: string
         }
@@ -279,6 +285,7 @@ export type Database = {
           id: string
           language: string
           phone: string
+          pincode: string | null
           selected_crop: string | null
           state: string | null
           updated_at: string
@@ -290,6 +297,7 @@ export type Database = {
           id?: string
           language?: string
           phone: string
+          pincode?: string | null
           selected_crop?: string | null
           state?: string | null
           updated_at?: string
@@ -301,6 +309,7 @@ export type Database = {
           id?: string
           language?: string
           phone?: string
+          pincode?: string | null
           selected_crop?: string | null
           state?: string | null
           updated_at?: string

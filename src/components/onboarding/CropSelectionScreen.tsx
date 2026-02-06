@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Sprout, ChevronRight, Grape, Wheat, Leaf } from 'lucide-react';
+import { Sprout, ChevronRight, Grape, Wheat, Leaf, Check } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
 
@@ -19,8 +19,8 @@ interface CropSelectionScreenProps {
 }
 
 export const CropSelectionScreen = ({ onComplete, onBack }: CropSelectionScreenProps) => {
-  const { language, selectedCrop, setSelectedCrop, trackInteraction } = useApp();
-  const [localCrop, setLocalCrop] = useState(selectedCrop);
+  const { language, selectedCrops, setSelectedCrops, trackInteraction } = useApp();
+  const [localCrops, setLocalCrops] = useState<string[]>(selectedCrops);
 
   const getCropName = (crop: typeof crops[0]) => {
     switch (language) {
@@ -32,17 +32,17 @@ export const CropSelectionScreen = ({ onComplete, onBack }: CropSelectionScreenP
 
   const getTitle = () => {
     switch (language) {
-      case 'mr': return 'आपले पीक निवडा';
-      case 'hi': return 'अपनी फसल चुनें';
-      default: return 'Select Your Crop';
+      case 'mr': return 'आपली पिके निवडा';
+      case 'hi': return 'अपनी फसलें चुनें';
+      default: return 'Select Your Crops';
     }
   };
 
   const getSubtitle = () => {
     switch (language) {
-      case 'mr': return 'तुमच्या पिकासाठी सर्वोत्तम उत्पादने दाखवतो';
-      case 'hi': return 'हम आपकी फसल के लिए सर्वोत्तम उत्पाद दिखाएंगे';
-      default: return 'We\'ll show you products best for your crop';
+      case 'mr': return 'एक किंवा अधिक पिके निवडा';
+      case 'hi': return 'एक या अधिक फसलें चुनें';
+      default: return 'Select one or more crops';
     }
   };
 
@@ -54,10 +54,18 @@ export const CropSelectionScreen = ({ onComplete, onBack }: CropSelectionScreenP
     }
   };
 
+  const toggleCrop = (cropId: string) => {
+    if (localCrops.includes(cropId)) {
+      setLocalCrops(localCrops.filter(c => c !== cropId));
+    } else {
+      setLocalCrops([...localCrops, cropId]);
+    }
+  };
+
   const handleContinue = async () => {
-    if (localCrop) {
-      setSelectedCrop(localCrop);
-      await trackInteraction('crop_selection', 'select_crop', { crop: localCrop });
+    if (localCrops.length > 0) {
+      setSelectedCrops(localCrops);
+      await trackInteraction('crop_selection', 'select_crops', { crops: localCrops });
       onComplete();
     }
   };
@@ -80,20 +88,25 @@ export const CropSelectionScreen = ({ onComplete, onBack }: CropSelectionScreenP
         </motion.div>
         <h1 className="text-xl font-bold text-foreground mb-2">{getTitle()}</h1>
         <p className="text-sm text-muted-foreground">{getSubtitle()}</p>
+        {localCrops.length > 0 && (
+          <p className="text-sm text-primary mt-2 font-medium">
+            {localCrops.length} {language === 'mr' ? 'पिके निवडली' : language === 'hi' ? 'फसलें चुनी' : 'crops selected'}
+          </p>
+        )}
       </motion.div>
 
       {/* Crop Grid */}
       <div className="flex-1 grid grid-cols-2 gap-3 max-w-sm mx-auto w-full">
         {crops.map((crop, index) => {
           const Icon = crop.icon;
-          const isSelected = localCrop === crop.id;
+          const isSelected = localCrops.includes(crop.id);
           return (
             <motion.button
               key={crop.id}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.1 + index * 0.05 }}
-              onClick={() => setLocalCrop(crop.id)}
+              onClick={() => toggleCrop(crop.id)}
               className={`relative p-4 rounded-2xl border-2 transition-all ${
                 isSelected
                   ? 'border-primary bg-primary/10 shadow-card'
@@ -108,12 +121,11 @@ export const CropSelectionScreen = ({ onComplete, onBack }: CropSelectionScreenP
               </p>
               {isSelected && (
                 <motion.div
-                  layoutId="cropCheck"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
                   className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center"
                 >
-                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
+                  <Check className="w-3 h-3 text-white" />
                 </motion.div>
               )}
             </motion.button>
@@ -130,7 +142,7 @@ export const CropSelectionScreen = ({ onComplete, onBack }: CropSelectionScreenP
       >
         <Button
           onClick={handleContinue}
-          disabled={!localCrop}
+          disabled={localCrops.length === 0}
           className="w-full h-14 text-lg font-semibold bg-gradient-hero hover:opacity-90 transition-opacity"
         >
           {getContinueText()}

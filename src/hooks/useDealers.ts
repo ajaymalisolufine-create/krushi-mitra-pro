@@ -11,13 +11,15 @@ export interface Dealer {
   email: string | null;
   lat: number | null;
   lng: number | null;
+  pincode: string | null;
+  serving_pincodes: string[] | null;
   status: string;
   created_at: string;
   updated_at: string;
 }
 
-export type DealerInsert = Omit<Dealer, 'id' | 'created_at' | 'updated_at'>;
-export type DealerUpdate = Partial<DealerInsert>;
+export type DealerInsert = Partial<Omit<Dealer, 'id' | 'created_at' | 'updated_at'>> & { name: string; status: string };
+export type DealerUpdate = Partial<Omit<Dealer, 'id' | 'created_at' | 'updated_at'>>;
 
 export const useDealers = () => {
   return useQuery({
@@ -47,6 +49,38 @@ export const useActiveDealers = () => {
       if (error) throw error;
       return data as Dealer[];
     },
+  });
+};
+
+// Get dealers by pincode - matches exact pincode or serving_pincodes array
+export const useDealersByPincode = (pincode: string | null) => {
+  return useQuery({
+    queryKey: ['dealers', 'pincode', pincode],
+    queryFn: async () => {
+      if (!pincode) {
+        // If no pincode, return all active dealers
+        const { data, error } = await supabase
+          .from('dealers')
+          .select('*')
+          .eq('status', 'active')
+          .order('name', { ascending: true });
+
+        if (error) throw error;
+        return data as Dealer[];
+      }
+
+      // Get dealers that match the pincode or have it in serving_pincodes
+      const { data, error } = await supabase
+        .from('dealers')
+        .select('*')
+        .eq('status', 'active')
+        .or(`pincode.eq.${pincode},serving_pincodes.cs.{${pincode}}`)
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      return data as Dealer[];
+    },
+    enabled: true,
   });
 };
 
