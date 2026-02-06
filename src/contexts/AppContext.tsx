@@ -5,11 +5,15 @@ import { User } from '@supabase/supabase-js';
 interface AppContextType {
   language: string;
   setLanguage: (lang: string) => void;
-  selectedCrop: string | null;
+  selectedCrops: string[];
+  setSelectedCrops: (crops: string[]) => void;
+  selectedCrop: string | null; // Legacy support - returns first crop
   setSelectedCrop: (crop: string | null) => void;
   user: User | null;
   phone: string | null;
   setPhone: (phone: string | null) => void;
+  pincode: string | null;
+  setPincode: (pincode: string | null) => void;
   isAuthenticated: boolean;
   signOut: () => Promise<void>;
   trackInteraction: (screenName: string, interactionType: string, data?: Record<string, unknown>) => Promise<void>;
@@ -21,9 +25,23 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [language, setLanguage] = useState(() => localStorage.getItem('app_language') || 'mr');
-  const [selectedCrop, setSelectedCrop] = useState<string | null>(() => localStorage.getItem('selected_crop'));
+  const [selectedCrops, setSelectedCrops] = useState<string[]>(() => {
+    const saved = localStorage.getItem('selected_crops');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        // Fallback to legacy single crop
+        const legacyCrop = localStorage.getItem('selected_crop');
+        return legacyCrop ? [legacyCrop] : [];
+      }
+    }
+    const legacyCrop = localStorage.getItem('selected_crop');
+    return legacyCrop ? [legacyCrop] : [];
+  });
   const [user, setUser] = useState<User | null>(null);
   const [phone, setPhone] = useState<string | null>(null);
+  const [pincode, setPincodeState] = useState<string | null>(() => localStorage.getItem('user_pincode'));
   const [activeTab, setActiveTab] = useState('home');
 
   useEffect(() => {
@@ -51,17 +69,39 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   }, [language]);
 
   useEffect(() => {
-    if (selectedCrop) {
-      localStorage.setItem('selected_crop', selectedCrop);
+    if (selectedCrops.length > 0) {
+      localStorage.setItem('selected_crops', JSON.stringify(selectedCrops));
+      localStorage.setItem('selected_crop', selectedCrops[0]); // Legacy support
     } else {
+      localStorage.removeItem('selected_crops');
       localStorage.removeItem('selected_crop');
     }
-  }, [selectedCrop]);
+  }, [selectedCrops]);
+
+  const setPincode = (newPincode: string | null) => {
+    setPincodeState(newPincode);
+    if (newPincode) {
+      localStorage.setItem('user_pincode', newPincode);
+    } else {
+      localStorage.removeItem('user_pincode');
+    }
+  };
+
+  // Legacy support for single crop selection
+  const selectedCrop = selectedCrops.length > 0 ? selectedCrops[0] : null;
+  const setSelectedCrop = (crop: string | null) => {
+    if (crop) {
+      setSelectedCrops([crop]);
+    } else {
+      setSelectedCrops([]);
+    }
+  };
 
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
     setPhone(null);
+    setPincode(null);
   };
 
   const trackInteraction = async (screenName: string, interactionType: string, data?: Record<string, unknown>) => {
@@ -84,11 +124,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     <AppContext.Provider value={{
       language,
       setLanguage,
+      selectedCrops,
+      setSelectedCrops,
       selectedCrop,
       setSelectedCrop,
       user,
       phone,
       setPhone,
+      pincode,
+      setPincode,
       isAuthenticated: !!user,
       signOut,
       trackInteraction,

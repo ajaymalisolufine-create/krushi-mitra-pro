@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Phone, Loader2, ArrowLeft } from 'lucide-react';
+import { Phone, Loader2, ArrowLeft, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
   const { language, setPhone, trackInteraction } = useApp();
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [pincode, setPincode] = useState('');
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -28,12 +29,26 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
     }
   };
 
+  const validatePincode = (code: string) => {
+    // Indian pincode validation - 6 digits starting with 1-9
+    return /^[1-9][0-9]{5}$/.test(code);
+  };
+
   const handleSendOTP = async () => {
     const cleanPhone = phoneNumber.replace(/\D/g, '');
     if (cleanPhone.length !== 10) {
       toast({
         title: getText('त्रुटी', 'त्रुटि', 'Error'),
         description: getText('कृपया वैध 10 अंकी मोबाइल नंबर प्रविष्ट करा', 'कृपया वैध 10 अंकी मोबाइल नंबर दर्ज करें', 'Please enter a valid 10-digit mobile number'),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!validatePincode(pincode)) {
+      toast({
+        title: getText('त्रुटी', 'त्रुटि', 'Error'),
+        description: getText('कृपया वैध 6 अंकी पिनकोड प्रविष्ट करा', 'कृपया वैध 6 अंकी पिनकोड दर्ज करें', 'Please enter a valid 6-digit pincode'),
         variant: 'destructive',
       });
       return;
@@ -48,7 +63,7 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
 
       if (error) throw error;
 
-      await trackInteraction('phone_login', 'otp_sent', { phone: fullPhone });
+      await trackInteraction('phone_login', 'otp_sent', { phone: fullPhone, pincode });
       setStep('otp');
       toast({
         title: getText('OTP पाठवला', 'OTP भेजा गया', 'OTP Sent'),
@@ -78,7 +93,7 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
     setIsLoading(true);
     try {
       const fullPhone = `+91${phoneNumber.replace(/\D/g, '')}`;
-      const { error } = await supabase.auth.verifyOtp({
+      const { data: authData, error } = await supabase.auth.verifyOtp({
         phone: fullPhone,
         token: otp,
         type: 'sms',
@@ -86,8 +101,28 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
 
       if (error) throw error;
 
+      // Save/update user profile with pincode
+      if (authData.user) {
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .upsert({
+            user_id: authData.user.id,
+            phone: fullPhone,
+            pincode: pincode,
+          }, {
+            onConflict: 'user_id'
+          });
+
+        if (profileError) {
+          console.error('Failed to save profile:', profileError);
+        }
+      }
+
       setPhone(fullPhone);
-      await trackInteraction('phone_login', 'login_success', { phone: fullPhone });
+      // Store pincode in localStorage for quick access
+      localStorage.setItem('user_pincode', pincode);
+      
+      await trackInteraction('phone_login', 'login_success', { phone: fullPhone, pincode });
       
       toast({
         title: getText('यशस्वी!', 'सफल!', 'Success!'),
@@ -105,6 +140,8 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
       setIsLoading(false);
     }
   };
+
+  const isPhoneFormValid = phoneNumber.length === 10 && validatePincode(pincode);
 
   return (
     <div className="min-h-screen bg-gradient-sunrise flex flex-col items-center justify-center p-6">
@@ -139,22 +176,50 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
         <div className="bg-card rounded-2xl p-6 shadow-card border border-border space-y-6">
           {step === 'phone' ? (
             <>
-              <div className="flex gap-2">
-                <div className="w-16 h-12 rounded-xl bg-muted flex items-center justify-center text-sm font-medium">
-                  🇮🇳 +91
+              {/* Phone Input */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">
+                    {getText('मोबाइल नंबर', 'मोबाइल नंबर', 'Mobile Number')} *
+                  </label>
+                  <div className="flex gap-2">
+                    <div className="w-16 h-12 rounded-xl bg-muted flex items-center justify-center text-sm font-medium">
+                      🇮🇳 +91
+                    </div>
+                    <Input
+                      type="tel"
+                      placeholder="9876543210"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      className="h-12 text-lg"
+                      maxLength={10}
+                    />
+                  </div>
                 </div>
-                <Input
-                  type="tel"
-                  placeholder="9876543210"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  className="h-12 text-lg"
-                  maxLength={10}
-                />
+
+                {/* Pincode Input */}
+                <div>
+                  <label className="block text-sm font-medium mb-1.5 flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4 text-primary" />
+                    {getText('पिनकोड', 'पिनकोड', 'Pincode')} *
+                  </label>
+                  <Input
+                    type="tel"
+                    placeholder="416410"
+                    value={pincode}
+                    onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    className="h-12 text-lg"
+                    maxLength={6}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {getText('जवळचे विक्रेते दाखवण्यासाठी', 'नजदीकी विक्रेता दिखाने के लिए', 'To show nearby dealers')}
+                  </p>
+                </div>
               </div>
+
               <Button
                 onClick={handleSendOTP}
-                disabled={isLoading || phoneNumber.length !== 10}
+                disabled={isLoading || !isPhoneFormValid}
                 className="w-full h-12 bg-gradient-hero hover:opacity-90"
               >
                 {isLoading ? (
