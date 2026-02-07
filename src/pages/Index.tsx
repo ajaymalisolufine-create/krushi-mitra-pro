@@ -10,6 +10,8 @@ import { CropSelectionScreen } from '@/components/onboarding/CropSelectionScreen
 import { PhoneLoginScreen } from '@/components/auth/PhoneLoginScreen';
 import { AIAssistantScreen } from '@/components/screens/AIAssistantScreen';
 import { ContactScreen } from '@/components/screens/ContactScreen';
+import { NotificationsScreen } from '@/components/screens/NotificationsScreen';
+import { VideosScreen } from '@/components/screens/VideosScreen';
 import { useApp } from '@/contexts/AppContext';
 
 type OnboardingStep = 'splash' | 'language' | 'crop' | 'login' | 'main';
@@ -63,10 +65,12 @@ const Index = () => {
     switch (activeTab) {
       case 'home':
         return <DashboardView />;
+      case 'notifications':
+        return <NotificationsScreen />;
+      case 'videos':
+        return <VideosScreen />;
       case 'products':
         return <ProductsGrid />;
-      case 'ai':
-        return <AIAssistantScreen />;
       case 'contact':
         return <ContactScreen />;
       default:

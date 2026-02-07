@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Home, Package, Bot, Phone, LucideIcon } from 'lucide-react';
+import { Home, Package, Bot, Phone, Bell, Video, LucideIcon } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 
 interface NavItem {
@@ -12,7 +12,8 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { id: 'home', icon: Home, labelMr: 'होम', labelHi: 'होम', labelEn: 'Home' },
-  { id: 'ai', icon: Bot, labelMr: 'AI', labelHi: 'AI', labelEn: 'AI' },
+  { id: 'notifications', icon: Bell, labelMr: 'सूचना', labelHi: 'सूचना', labelEn: 'Updates' },
+  { id: 'videos', icon: Video, labelMr: 'व्हिडिओ', labelHi: 'वीडियो', labelEn: 'Videos' },
   { id: 'products', icon: Package, labelMr: 'उत्पादने', labelHi: 'उत्पाद', labelEn: 'Products' },
   { id: 'contact', icon: Phone, labelMr: 'संपर्क', labelHi: 'संपर्क', labelEn: 'Contact' },
 ];
