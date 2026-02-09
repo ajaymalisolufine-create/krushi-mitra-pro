@@ -53,12 +53,13 @@ export const NotificationsScreen = () => {
   const [activeTab, setActiveTab] = useState<TabType>('notifications');
 
   const tabs = [
-    { id: 'notifications' as TabType, label: t.notifications, icon: Bell, count: notifications.filter(n => n.status === 'sent').length },
+    { id: 'notifications' as TabType, label: t.notifications, icon: Bell, count: notifications.filter(n => n.status === 'sent' || n.status === 'scheduled').length },
     { id: 'news' as TabType, label: t.news, icon: Newspaper, count: news.length },
     { id: 'offers' as TabType, label: t.offers, icon: Tag, count: promotions.length },
   ];
 
-  const sentNotifications = notifications.filter(n => n.status === 'sent');
+  // Show sent and scheduled notifications to users (scheduled means "coming soon")
+  const visibleNotifications = notifications.filter(n => n.status === 'sent' || n.status === 'scheduled');
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -101,13 +102,13 @@ export const NotificationsScreen = () => {
       <div className="space-y-3">
         {activeTab === 'notifications' && (
           <>
-            {sentNotifications.length === 0 ? (
+            {visibleNotifications.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Bell className="w-12 h-12 mx-auto mb-2 opacity-50" />
                 <p>{t.noNotifications}</p>
               </div>
             ) : (
-              sentNotifications.map((notification, index) => (
+              visibleNotifications.map((notification, index) => (
                 <motion.div
                   key={notification.id}
                   initial={{ opacity: 0, y: 10 }}
@@ -120,14 +121,21 @@ export const NotificationsScreen = () => {
                       <Bell className="w-5 h-5 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-sm">{notification.title}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-sm">{notification.title}</h3>
+                        {notification.status === 'scheduled' && (
+                          <span className="px-1.5 py-0.5 text-xs bg-sky-blue/20 text-sky-blue rounded-full">Upcoming</span>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
-                      {notification.sent_at && (
-                        <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {format(new Date(notification.sent_at), 'dd MMM yyyy, hh:mm a')}
-                        </p>
-                      )}
+                      <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {notification.sent_at
+                          ? format(new Date(notification.sent_at), 'dd MMM yyyy, hh:mm a')
+                          : notification.scheduled_at
+                            ? format(new Date(notification.scheduled_at), 'dd MMM yyyy, hh:mm a')
+                            : format(new Date(notification.created_at), 'dd MMM yyyy, hh:mm a')}
+                      </p>
                     </div>
                   </div>
                 </motion.div>
