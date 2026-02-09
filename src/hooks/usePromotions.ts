@@ -63,8 +63,9 @@ export const useCreatePromotion = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['promotions'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['promotions'] });
+      await queryClient.refetchQueries({ queryKey: ['promotions'] });
       toast.success('Promotion created successfully');
     },
     onError: (error) => {
@@ -88,8 +89,9 @@ export const useUpdatePromotion = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['promotions'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['promotions'] });
+      await queryClient.refetchQueries({ queryKey: ['promotions'] });
       toast.success('Promotion updated successfully');
     },
     onError: (error) => {
@@ -110,8 +112,9 @@ export const useDeletePromotion = () => {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['promotions'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['promotions'] });
+      await queryClient.refetchQueries({ queryKey: ['promotions'] });
       toast.success('Promotion deleted successfully');
     },
     onError: (error) => {

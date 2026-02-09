@@ -47,8 +47,9 @@ export const useCreateNotification = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      await queryClient.refetchQueries({ queryKey: ['notifications'] });
       toast.success('Notification created successfully');
     },
     onError: (error) => {
@@ -72,8 +73,9 @@ export const useUpdateNotification = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      await queryClient.refetchQueries({ queryKey: ['notifications'] });
       toast.success('Notification updated successfully');
     },
     onError: (error) => {
@@ -94,12 +96,30 @@ export const useDeleteNotification = () => {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      await queryClient.refetchQueries({ queryKey: ['notifications'] });
       toast.success('Notification deleted successfully');
     },
     onError: (error) => {
       toast.error('Failed to delete notification: ' + error.message);
+    },
+  });
+};
+
+// Hook for sent notifications (for the app)
+export const useSentNotifications = () => {
+  return useQuery({
+    queryKey: ['notifications', 'sent'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('status', 'sent')
+        .order('sent_at', { ascending: false });
+
+      if (error) throw error;
+      return data as Notification[];
     },
   });
 };

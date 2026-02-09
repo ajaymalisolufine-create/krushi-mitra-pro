@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Send, Bell, Users, MapPin, Grape, Clock, Trash2, Loader2 } from 'lucide-react';
-import { useNotifications, useCreateNotification, useDeleteNotification, type Notification } from '@/hooks/useNotifications';
+import { Plus, Send, Bell, Users, MapPin, Grape, Clock, Trash2, Loader2, CheckCircle } from 'lucide-react';
+import { useNotifications, useCreateNotification, useUpdateNotification, useDeleteNotification, type Notification } from '@/hooks/useNotifications';
 import { format } from 'date-fns';
 
 export const AdminNotifications = () => {
   const { data: notifications = [], isLoading } = useNotifications();
   const createNotification = useCreateNotification();
+  const updateNotification = useUpdateNotification();
   const deleteNotification = useDeleteNotification();
 
   const [showModal, setShowModal] = useState(false);
@@ -42,6 +43,18 @@ export const AdminNotifications = () => {
   const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this notification?')) {
       deleteNotification.mutate(id);
+    }
+  };
+
+  const handleSendNow = (notif: Notification) => {
+    if (confirm('Send this notification to users now?')) {
+      updateNotification.mutate({
+        id: notif.id,
+        updates: {
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+        },
+      });
     }
   };
 
@@ -180,13 +193,25 @@ export const AdminNotifications = () => {
                       </div>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleDelete(notif.id)}
-                    disabled={deleteNotification.isPending}
-                    className="p-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {notif.status !== 'sent' && (
+                      <button
+                        onClick={() => handleSendNow(notif)}
+                        disabled={updateNotification.isPending}
+                        className="p-2 rounded-lg hover:bg-secondary/10 text-secondary transition-colors"
+                        title="Send Now"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDelete(notif.id)}
+                      disabled={deleteNotification.isPending}
+                      className="p-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             );

@@ -64,8 +64,9 @@ export const useCreateNews = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['news'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['news'] });
+      await queryClient.refetchQueries({ queryKey: ['news'] });
       toast.success('News published successfully');
     },
     onError: (error) => {
@@ -89,8 +90,9 @@ export const useUpdateNews = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['news'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['news'] });
+      await queryClient.refetchQueries({ queryKey: ['news'] });
       toast.success('News updated successfully');
     },
     onError: (error) => {
@@ -111,8 +113,9 @@ export const useDeleteNews = () => {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['news'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['news'] });
+      await queryClient.refetchQueries({ queryKey: ['news'] });
       toast.success('News deleted successfully');
     },
     onError: (error) => {

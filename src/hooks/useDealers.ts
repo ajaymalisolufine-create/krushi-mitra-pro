@@ -98,8 +98,9 @@ export const useCreateDealer = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dealers'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['dealers'] });
+      await queryClient.refetchQueries({ queryKey: ['dealers'] });
       toast.success('Dealer added successfully');
     },
     onError: (error) => {
@@ -123,8 +124,9 @@ export const useUpdateDealer = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dealers'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['dealers'] });
+      await queryClient.refetchQueries({ queryKey: ['dealers'] });
       toast.success('Dealer updated successfully');
     },
     onError: (error) => {
@@ -145,8 +147,9 @@ export const useDeleteDealer = () => {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dealers'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['dealers'] });
+      await queryClient.refetchQueries({ queryKey: ['dealers'] });
       toast.success('Dealer deleted successfully');
     },
     onError: (error) => {

@@ -65,8 +65,9 @@ export const useCreateVideo = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['videos'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['videos'] });
+      await queryClient.refetchQueries({ queryKey: ['videos'] });
       toast.success('Video added successfully');
     },
     onError: (error) => {
@@ -90,8 +91,9 @@ export const useUpdateVideo = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['videos'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['videos'] });
+      await queryClient.refetchQueries({ queryKey: ['videos'] });
       toast.success('Video updated successfully');
     },
     onError: (error) => {
@@ -112,8 +114,9 @@ export const useDeleteVideo = () => {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['videos'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['videos'] });
+      await queryClient.refetchQueries({ queryKey: ['videos'] });
       toast.success('Video deleted successfully');
     },
     onError: (error) => {
