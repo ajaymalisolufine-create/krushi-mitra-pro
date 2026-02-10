@@ -87,6 +87,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Load pincode from profile on auth
+  useEffect(() => {
+    if (user?.id) {
+      supabase.from('user_profiles').select('pincode, state, name, city, district').eq('user_id', user.id).single().then(({ data }) => {
+        if (data) {
+          if (data.pincode) setPincode(data.pincode);
+          if (data.state) localStorage.setItem('user_state', data.state);
+          if (data.name) localStorage.setItem('user_name', data.name);
+          if (data.city) localStorage.setItem('user_city', data.city);
+          if (data.district) localStorage.setItem('user_district', data.district);
+        }
+      });
+    }
+  }, [user?.id]);
+
   // Legacy support for single crop selection
   const selectedCrop = selectedCrops.length > 0 ? selectedCrops[0] : null;
   const setSelectedCrop = (crop: string | null) => {

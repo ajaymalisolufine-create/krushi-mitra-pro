@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check, MapPin, Package, Zap, Sparkles, Shield, Droplet, Leaf } from 'lucide-react';
+import { X, Check, MapPin, Package, Zap, Sparkles, Shield, Droplet, Leaf, ShoppingBag, Loader2 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import type { Product } from '@/hooks/useProducts';
 
 const getProductIcon = (icon: string | null) => {
@@ -31,7 +34,8 @@ interface ProductDetailSheetProps {
 }
 
 export const ProductDetailSheet = ({ product, onClose, onFindDealer }: ProductDetailSheetProps) => {
-  const { language, setActiveTab } = useApp();
+  const { language, setActiveTab, user, phone, pincode, selectedCrops } = useApp();
+  const [isEnquiring, setIsEnquiring] = useState(false);
 
   const getText = (mr: string, hi: string, en: string) => {
     switch (language) {
@@ -47,9 +51,44 @@ export const ProductDetailSheet = ({ product, onClose, onFindDealer }: ProductDe
     setActiveTab('contact');
   };
 
+  const handleEnquireNow = async () => {
+    if (!product) return;
+    setIsEnquiring(true);
+    try {
+      const userName = localStorage.getItem('user_name') || null;
+      const userState = localStorage.getItem('user_state') || null;
+      
+      const { error } = await supabase
+        .from('product_enquiries')
+        .insert({
+          user_id: user?.id || null,
+          product_id: product.id,
+          product_name: product.name,
+          name: userName,
+          phone: phone || null,
+          pincode: pincode || null,
+          city: localStorage.getItem('user_city') || null,
+          district: localStorage.getItem('user_district') || null,
+          state: userState,
+          language,
+          selected_crops: selectedCrops.length > 0 ? selectedCrops : null,
+        });
+
+      if (error) throw error;
+
+      toast.success(getText('चौकशी नोंदवली!', 'पूछताछ दर्ज की गई!', 'Enquiry Submitted!'));
+    } catch (error: any) {
+      console.error('Enquiry failed:', error);
+      toast.error(getText('चौकशी अयशस्वी', 'पूछताछ विफल', 'Enquiry failed'));
+    } finally {
+      setIsEnquiring(false);
+    }
+  };
+
   if (!product) return null;
 
   const ProductIcon = getProductIcon(product.icon);
+  const hasImage = product.image_url && product.image_url.length > 0;
 
   return (
     <AnimatePresence>
@@ -70,12 +109,9 @@ export const ProductDetailSheet = ({ product, onClose, onFindDealer }: ProductDe
             className="bg-card rounded-t-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
           >
             {/* Header */}
-            <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between">
+            <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between z-10">
               <h2 className="text-lg font-bold">{product.name}</h2>
-              <button
-                onClick={onClose}
-                className="p-2 rounded-full hover:bg-muted"
-              >
+              <button onClick={onClose} className="p-2 rounded-full hover:bg-muted">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -83,13 +119,24 @@ export const ProductDetailSheet = ({ product, onClose, onFindDealer }: ProductDe
             <div className="p-4 space-y-4">
               {/* Product Header */}
               <div className="flex gap-4">
-                <div className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${getProductGradient(product.icon)} flex items-center justify-center`}>
-                  <ProductIcon className="w-12 h-12 text-white" />
-                </div>
+                {hasImage ? (
+                  <img 
+                    src={product.image_url!} 
+                    alt={product.name}
+                    className="w-24 h-24 rounded-2xl object-cover border border-border"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                ) : (
+                  <div className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${getProductGradient(product.icon)} flex items-center justify-center`}>
+                    <ProductIcon className="w-12 h-12 text-white" />
+                  </div>
+                )}
                 <div>
                   <h3 className="font-bold text-xl">{product.name}</h3>
                   <p className="text-muted-foreground">{product.tagline}</p>
-                  <p className="text-2xl font-bold text-primary mt-2">₹{product.mrp}</p>
+                  {product.mrp > 0 && (
+                    <p className="text-2xl font-bold text-primary mt-2">₹{product.mrp}</p>
+                  )}
                 </div>
               </div>
 
@@ -130,10 +177,7 @@ export const ProductDetailSheet = ({ product, onClose, onFindDealer }: ProductDe
                   <h4 className="font-semibold mb-2">{getText('योग्य पिके', 'उपयुक्त फसलें', 'Suitable Crops')}</h4>
                   <div className="flex flex-wrap gap-2">
                     {product.crops.map((crop) => (
-                      <span
-                        key={crop}
-                        className="px-3 py-1 bg-secondary/10 text-secondary rounded-full text-sm"
-                      >
+                      <span key={crop} className="px-3 py-1 bg-secondary/10 text-secondary rounded-full text-sm">
                         {crop}
                       </span>
                     ))}
@@ -141,7 +185,21 @@ export const ProductDetailSheet = ({ product, onClose, onFindDealer }: ProductDe
                 </div>
               )}
 
-              {/* CTA */}
+              {/* Enquire Now CTA */}
+              <button
+                onClick={handleEnquireNow}
+                disabled={isEnquiring}
+                className="w-full py-3 bg-gradient-to-r from-harvest-gold to-sunrise-orange text-white font-semibold rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {isEnquiring ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <ShoppingBag className="w-5 h-5" />
+                )}
+                {getText('चौकशी करा', 'पूछताछ करें', 'Enquire Now')}
+              </button>
+
+              {/* Find Dealer CTA */}
               <button
                 onClick={handleFindDealer}
                 className="w-full py-3 bg-gradient-to-r from-primary to-secondary text-primary-foreground font-semibold rounded-xl flex items-center justify-center gap-2"

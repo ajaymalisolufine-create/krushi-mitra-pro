@@ -179,6 +179,62 @@ export type Database = {
         }
         Relationships: []
       }
+      product_enquiries: {
+        Row: {
+          city: string | null
+          created_at: string
+          district: string | null
+          id: string
+          language: string | null
+          name: string | null
+          phone: string | null
+          pincode: string | null
+          product_id: string | null
+          product_name: string
+          selected_crops: string[] | null
+          state: string | null
+          user_id: string | null
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          district?: string | null
+          id?: string
+          language?: string | null
+          name?: string | null
+          phone?: string | null
+          pincode?: string | null
+          product_id?: string | null
+          product_name: string
+          selected_crops?: string[] | null
+          state?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          district?: string | null
+          id?: string
+          language?: string | null
+          name?: string | null
+          phone?: string | null
+          pincode?: string | null
+          product_id?: string | null
+          product_name?: string
+          selected_crops?: string[] | null
+          state?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_enquiries_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           available_states: string[] | null
@@ -282,8 +338,10 @@ export type Database = {
         Row: {
           city: string | null
           created_at: string
+          district: string | null
           id: string
           language: string
+          name: string | null
           phone: string
           pincode: string | null
           selected_crop: string | null
@@ -294,8 +352,10 @@ export type Database = {
         Insert: {
           city?: string | null
           created_at?: string
+          district?: string | null
           id?: string
           language?: string
+          name?: string | null
           phone: string
           pincode?: string | null
           selected_crop?: string | null
@@ -306,8 +366,10 @@ export type Database = {
         Update: {
           city?: string | null
           created_at?: string
+          district?: string | null
           id?: string
           language?: string
+          name?: string | null
           phone?: string
           pincode?: string | null
           selected_crop?: string | null

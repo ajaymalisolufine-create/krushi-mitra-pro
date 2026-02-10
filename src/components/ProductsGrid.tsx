@@ -1,48 +1,12 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, MapPin, Star, Zap, Sparkles, Shield, Loader2, Droplet, Leaf, X, Check, ChevronDown, Filter } from 'lucide-react';
+import { Package, Star, Loader2, Check, Filter } from 'lucide-react';
 import { useProducts, type Product } from '@/hooks/useProducts';
 import { useApp } from '@/contexts/AppContext';
-import { Button } from '@/components/ui/button';
+import { ProductDetailSheet } from './ProductDetailSheet';
+import { allIndianCrops, getCropLabel, buildCropMapping } from '@/lib/crops';
 
-const getProductIcon = (icon: string | null) => {
-  switch (icon) {
-    case 'zap': return Zap;
-    case 'flower': case 'sparkles': return Sparkles;
-    case 'shield': return Shield;
-    case 'droplet': return Droplet;
-    case 'leaf': return Leaf;
-    default: return Package;
-  }
-};
-
-const getProductGradient = (icon: string | null) => {
-  switch (icon) {
-    case 'zap': return 'from-harvest-gold to-sunrise-orange';
-    case 'flower': case 'sparkles': return 'from-secondary to-leaf-green';
-    case 'shield': return 'from-sky-blue to-secondary';
-    case 'droplet': return 'from-sky-blue to-primary';
-    default: return 'from-primary to-secondary';
-  }
-};
-
-const cropMapping: Record<string, string[]> = {
-  grapes: ['द्राक्षे', 'Grapes', 'अंगूर', 'Grape'],
-  chickpea: ['हरभरा', 'Chickpea', 'चना'],
-  cotton: ['कापूस', 'Cotton', 'कपास'],
-  sugarcane: ['ऊस', 'Sugarcane', 'गन्ना'],
-  pomegranate: ['डाळिंब', 'Pomegranate', 'अनार'],
-  onion: ['कांदा', 'Onion', 'प्याज'],
-};
-
-const allCrops = [
-  { id: 'grapes', mr: 'द्राक्षे', hi: 'अंगूर', en: 'Grapes' },
-  { id: 'chickpea', mr: 'हरभरा', hi: 'चना', en: 'Chickpea' },
-  { id: 'cotton', mr: 'कापूस', hi: 'कपास', en: 'Cotton' },
-  { id: 'sugarcane', mr: 'ऊस', hi: 'गन्ना', en: 'Sugarcane' },
-  { id: 'pomegranate', mr: 'डाळिंब', hi: 'अनार', en: 'Pomegranate' },
-  { id: 'onion', mr: 'कांदा', hi: 'प्याज', en: 'Onion' },
-];
+const cropMapping = buildCropMapping();
 
 const categories = [
   { key: 'all', mr: 'सर्व', hi: 'सभी', en: 'All' },
@@ -51,37 +15,20 @@ const categories = [
   { key: 'pesticides', mr: 'कीटकनाशके', hi: 'कीटनाशक', en: 'Pesticides' },
 ];
 
-const indianStates = [
-  'Maharashtra', 'Karnataka', 'Gujarat', 'Madhya Pradesh', 'Rajasthan',
-  'Punjab', 'Uttar Pradesh', 'Tamil Nadu', 'Andhra Pradesh', 'Telangana',
-];
-
-interface ProductsGridProps {
-  onProductClick?: (product: Product) => void;
-}
-
-export const ProductsGrid = ({ onProductClick }: ProductsGridProps) => {
+export const ProductsGrid = () => {
   const { data: products = [], isLoading } = useProducts();
   const { language, selectedCrops, setSelectedCrops, trackInteraction } = useApp();
   const [activeCategory, setActiveCategory] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedState, setSelectedState] = useState('Maharashtra');
-  const [showStateSelector, setShowStateSelector] = useState(false);
   const [showCropFilter, setShowCropFilter] = useState(false);
+
+  const userState = localStorage.getItem('user_state') || '';
 
   const getText = (mr: string, hi: string, en: string) => {
     switch (language) {
       case 'mr': return mr;
       case 'hi': return hi;
       default: return en;
-    }
-  };
-
-  const getCropLabel = (crop: typeof allCrops[0]) => {
-    switch (language) {
-      case 'mr': return crop.mr;
-      case 'hi': return crop.hi;
-      default: return crop.en;
     }
   };
 
@@ -93,12 +40,18 @@ export const ProductsGrid = ({ onProductClick }: ProductsGridProps) => {
     }
   };
 
-  // Filter products based on selected crops (multi-select), category, and state
+  // Filter products by user's state (from login), selected crops, and category
   const filteredProducts = products
     .filter(p => p.status === 'active')
     .filter(p => {
+      // State filter: if product has available_states and user has a state, filter
+      if (userState && p.available_states && p.available_states.length > 0) {
+        return p.available_states.includes(userState);
+      }
+      return true;
+    })
+    .filter(p => {
       if (selectedCrops.length === 0) return true;
-      // Check if product matches ANY of the selected crops
       return selectedCrops.some(selectedCrop => {
         const cropNames = cropMapping[selectedCrop] || [];
         return p.crops?.some(productCrop => 
@@ -109,21 +62,11 @@ export const ProductsGrid = ({ onProductClick }: ProductsGridProps) => {
     .filter(p => {
       if (activeCategory === 'all') return true;
       return p.category.toLowerCase() === activeCategory.toLowerCase();
-    })
-    .filter(p => {
-      // Filter by state - if no states specified, show in all states
-      if (!p.available_states || p.available_states.length === 0) return true;
-      return p.available_states.includes(selectedState);
     });
 
   const handleProductClick = async (product: Product) => {
     await trackInteraction('products', 'view_product', { productId: product.id, productName: product.name });
     setSelectedProduct(product);
-    onProductClick?.(product);
-  };
-
-  const handleFindDealer = async (product: Product) => {
-    await trackInteraction('products', 'find_dealer', { productId: product.id, productName: product.name });
   };
 
   if (isLoading) {
@@ -170,21 +113,21 @@ export const ProductsGrid = ({ onProductClick }: ProductsGridProps) => {
               <p className="text-sm font-medium mb-2">
                 {getText('पिके निवडा (एकापेक्षा जास्त)', 'फसलें चुनें (एक से अधिक)', 'Select Crops (Multiple)')}
               </p>
-              <div className="flex flex-wrap gap-2">
-                {allCrops.map((crop) => {
+              <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
+                {allIndianCrops.map((crop) => {
                   const isSelected = selectedCrops.includes(crop.id);
                   return (
                     <button
                       key={crop.id}
                       onClick={() => toggleCropFilter(crop.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
                         isSelected
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-muted text-foreground hover:bg-muted/80'
                       }`}
                     >
                       {isSelected && <Check className="w-3 h-3" />}
-                      {getCropLabel(crop)}
+                      {getCropLabel(crop, language)}
                     </button>
                   );
                 })}
@@ -201,46 +144,6 @@ export const ProductsGrid = ({ onProductClick }: ProductsGridProps) => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* State Selector */}
-      <div className="relative">
-        <button
-          onClick={() => setShowStateSelector(!showStateSelector)}
-          className="flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-xl text-sm w-full justify-between"
-        >
-          <span className="flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-primary" />
-            {getText('राज्य:', 'राज्य:', 'State:')} {selectedState}
-          </span>
-          <ChevronDown className={`w-4 h-4 transition-transform ${showStateSelector ? 'rotate-180' : ''}`} />
-        </button>
-        
-        {showStateSelector && (
-          <>
-            <div className="fixed inset-0 z-10" onClick={() => setShowStateSelector(false)} />
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-20 max-h-48 overflow-y-auto"
-            >
-              {indianStates.map((state) => (
-                <button
-                  key={state}
-                  onClick={() => {
-                    setSelectedState(state);
-                    setShowStateSelector(false);
-                  }}
-                  className={`w-full px-4 py-2 text-left text-sm hover:bg-muted transition-colors ${
-                    selectedState === state ? 'bg-primary/10 text-primary' : ''
-                  }`}
-                >
-                  {state}
-                </button>
-              ))}
-            </motion.div>
-          </>
-        )}
-      </div>
 
       {/* Category Filters */}
       <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
@@ -273,187 +176,87 @@ export const ProductsGrid = ({ onProductClick }: ProductsGridProps) => {
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {filteredProducts.map((product, index) => {
-            const ProductIcon = getProductIcon(product.icon);
+            const hasImage = product.image_url && product.image_url.length > 0;
             return (
               <motion.div
                 key={product.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: index * 0.05 }}
                 onClick={() => handleProductClick(product)}
                 className="bg-card rounded-2xl p-4 shadow-card border border-border/50 hover:shadow-card-hover transition-all cursor-pointer group"
               >
                 <div className="flex gap-4">
-                  {/* Product Icon */}
-                  <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${getProductGradient(product.icon)} flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}>
-                    <ProductIcon className="w-10 h-10 text-white" />
-                  </div>
+                  {/* Product Image or Icon */}
+                  {hasImage ? (
+                    <img 
+                      src={product.image_url!} 
+                      alt={product.name}
+                      className="w-20 h-20 rounded-2xl object-cover border border-border shrink-0 group-hover:scale-105 transition-transform"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <Package className="w-10 h-10 text-white" />
+                    </div>
+                  )}
 
-                  {/* Product Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <h3 className="font-bold text-lg">{product.name}</h3>
                         <p className="text-sm text-muted-foreground">{product.tagline}</p>
                       </div>
-                      <div className="flex items-center gap-1 bg-harvest-gold/20 px-2 py-1 rounded-full">
-                        <Star className="w-3 h-3 fill-harvest-gold text-harvest-gold" />
-                        <span className="text-xs font-semibold text-accent">4.8</span>
-                      </div>
+                      {(product.is_trending || product.is_best_seller) && (
+                        <div className="flex items-center gap-1 bg-harvest-gold/20 px-2 py-1 rounded-full">
+                          <Star className="w-3 h-3 fill-harvest-gold text-harvest-gold" />
+                        </div>
+                      )}
                     </div>
 
-                    {/* Benefits Preview */}
                     {product.benefits && product.benefits.length > 0 && (
-                      <div className="mt-2">
-                        <p className="text-xs text-secondary flex items-center gap-1">
-                          <Check className="w-3 h-3" />
-                          {product.benefits[0]}
-                        </p>
-                      </div>
+                      <p className="text-xs text-secondary flex items-center gap-1 mt-2">
+                        <Check className="w-3 h-3" />
+                        {product.benefits[0]}
+                      </p>
                     )}
 
                     <div className="mt-3 flex items-center justify-between">
-                      <div>
-                        <span className="text-xs text-muted-foreground">MRP</span>
-                        <p className="font-bold text-primary">₹{product.mrp}</p>
-                      </div>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleFindDealer(product);
-                        }}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-secondary text-secondary-foreground rounded-full text-sm font-medium hover:bg-secondary/90 transition-colors"
-                      >
-                        <MapPin className="w-3 h-3" />
-                        <span>{getText('विक्रेता शोधा', 'विक्रेता खोजें', 'Find Dealer')}</span>
-                      </button>
+                      {product.mrp > 0 && (
+                        <div>
+                          <span className="text-xs text-muted-foreground">MRP</span>
+                          <p className="font-bold text-primary">₹{product.mrp}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 {/* Crops */}
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {product.crops?.map((crop) => (
-                    <span
-                      key={crop}
-                      className="px-2 py-0.5 bg-muted rounded-full text-xs font-medium text-muted-foreground"
-                    >
-                      {crop}
-                    </span>
-                  ))}
-                  {product.dosage && (
-                    <span className="px-2 py-0.5 bg-secondary/10 rounded-full text-xs font-medium text-secondary">
-                      {product.dosage}
-                    </span>
-                  )}
-                </div>
+                {product.crops && product.crops.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {product.crops.slice(0, 4).map((crop) => (
+                      <span key={crop} className="px-2 py-0.5 bg-muted rounded-full text-xs font-medium text-muted-foreground">
+                        {crop}
+                      </span>
+                    ))}
+                    {product.crops.length > 4 && (
+                      <span className="px-2 py-0.5 bg-muted rounded-full text-xs font-medium text-muted-foreground">
+                        +{product.crops.length - 4}
+                      </span>
+                    )}
+                  </div>
+                )}
               </motion.div>
             );
           })}
         </div>
       )}
 
-      {/* Product Detail Modal */}
-      <AnimatePresence>
-        {selectedProduct && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center"
-            onClick={() => setSelectedProduct(null)}
-          >
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-card rounded-t-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
-            >
-              {/* Header */}
-              <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between">
-                <h2 className="text-lg font-bold">{selectedProduct.name}</h2>
-                <button
-                  onClick={() => setSelectedProduct(null)}
-                  className="p-2 rounded-full hover:bg-muted"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="p-4 space-y-4">
-                {/* Product Header */}
-                <div className="flex gap-4">
-                  <div className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${getProductGradient(selectedProduct.icon)} flex items-center justify-center`}>
-                    {(() => {
-                      const Icon = getProductIcon(selectedProduct.icon);
-                      return <Icon className="w-12 h-12 text-white" />;
-                    })()}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-xl">{selectedProduct.name}</h3>
-                    <p className="text-muted-foreground">{selectedProduct.tagline}</p>
-                    <p className="text-2xl font-bold text-primary mt-2">₹{selectedProduct.mrp}</p>
-                  </div>
-                </div>
-
-                {/* Description */}
-                {selectedProduct.description && (
-                  <div>
-                    <h4 className="font-semibold mb-2">{getText('वर्णन', 'विवरण', 'Description')}</h4>
-                    <p className="text-sm text-muted-foreground">{selectedProduct.description}</p>
-                  </div>
-                )}
-
-                {/* Benefits */}
-                {selectedProduct.benefits && selectedProduct.benefits.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold mb-2">{getText('फायदे', 'लाभ', 'Benefits')}</h4>
-                    <ul className="space-y-2">
-                      {selectedProduct.benefits.map((benefit, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm">
-                          <Check className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
-                          <span>{benefit}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Dosage */}
-                {selectedProduct.dosage && (
-                  <div className="bg-muted rounded-xl p-3">
-                    <h4 className="font-semibold text-sm mb-1">{getText('डोस', 'खुराक', 'Dosage')}</h4>
-                    <p className="text-primary font-medium">{selectedProduct.dosage}</p>
-                  </div>
-                )}
-
-                {/* Crops */}
-                <div>
-                  <h4 className="font-semibold mb-2">{getText('शिफारस केलेली पिके', 'अनुशंसित फसलें', 'Recommended Crops')}</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedProduct.crops?.map((crop) => (
-                      <span key={crop} className="px-3 py-1 bg-secondary/10 text-secondary rounded-full text-sm font-medium">
-                        {crop}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* CTA */}
-                <Button
-                  onClick={() => handleFindDealer(selectedProduct)}
-                  className="w-full h-12 bg-gradient-hero hover:opacity-90"
-                >
-                  <MapPin className="w-5 h-5 mr-2" />
-                  {getText('जवळचे विक्रेते शोधा', 'नजदीकी विक्रेता खोजें', 'Find Nearby Dealer')}
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ProductDetailSheet
+        product={selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+      />
     </div>
   );
 };
