@@ -6,24 +6,9 @@ import { useApp } from '@/contexts/AppContext';
 import { ProductDetailSheet } from './ProductDetailSheet';
 
 const translations = {
-  mr: {
-    title: 'सर्वाधिक विक्री',
-    viewAll: 'सर्व पहा',
-    noProducts: 'सर्वाधिक विक्री उत्पादने उपलब्ध नाहीत',
-    bestseller: 'बेस्टसेलर',
-  },
-  hi: {
-    title: 'सबसे ज्यादा बिकने वाले',
-    viewAll: 'सभी देखें',
-    noProducts: 'कोई बेस्टसेलर उत्पाद उपलब्ध नहीं',
-    bestseller: 'बेस्टसेलर',
-  },
-  en: {
-    title: 'Best Selling Products',
-    viewAll: 'View All',
-    noProducts: 'No best selling products available',
-    bestseller: 'Bestseller',
-  },
+  mr: { title: 'सर्वाधिक विक्री', viewAll: 'सर्व पहा', noProducts: 'सर्वाधिक विक्री उत्पादने उपलब्ध नाहीत', bestseller: 'बेस्टसेलर' },
+  hi: { title: 'सबसे ज्यादा बिकने वाले', viewAll: 'सभी देखें', noProducts: 'कोई बेस्टसेलर उत्पाद उपलब्ध नहीं', bestseller: 'बेस्टसेलर' },
+  en: { title: 'Best Selling Products', viewAll: 'View All', noProducts: 'No best selling products available', bestseller: 'Bestseller' },
 };
 
 export const BestSellingProducts = () => {
@@ -32,7 +17,17 @@ export const BestSellingProducts = () => {
   const t = translations[language as keyof typeof translations] || translations.en;
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   
-  const bestSellingProducts = products.filter(p => p.is_best_seller && p.status === 'active').slice(0, 4);
+  const userState = localStorage.getItem('user_state') || '';
+  
+  const bestSellingProducts = products
+    .filter(p => p.is_best_seller && p.status === 'active')
+    .filter(p => {
+      if (userState && p.available_states && p.available_states.length > 0) {
+        return p.available_states.includes(userState);
+      }
+      return true;
+    })
+    .slice(0, 4);
 
   const handleProductClick = async (product: Product) => {
     await trackInteraction('bestselling_products', 'view_product', { productId: product.id, productName: product.name });
@@ -59,52 +54,55 @@ export const BestSellingProducts = () => {
           <p className="text-sm text-muted-foreground text-center py-4">{t.noProducts}</p>
         ) : (
           <div className="space-y-3">
-            {bestSellingProducts.map((product, index) => (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                onClick={() => handleProductClick(product)}
-                className="bg-card rounded-xl p-4 shadow-card border border-border/50 hover:shadow-card-hover transition-all cursor-pointer"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-harvest-gold/20 to-accent/20 flex items-center justify-center flex-shrink-0">
-                    <Package className="w-6 h-6 text-accent" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-sm">{product.name}</h3>
-                      <span className="px-2 py-0.5 bg-harvest-gold/20 text-accent text-xs font-medium rounded-full">
-                        {t.bestseller}
-                      </span>
-                    </div>
-                    {product.tagline && (
-                      <p className="text-xs text-muted-foreground line-clamp-1">{product.tagline}</p>
-                    )}
-                    {product.benefits && product.benefits.length > 0 && (
-                      <div className="mt-2 space-y-0.5">
-                        {product.benefits.slice(0, 2).map((benefit, i) => (
-                          <p key={i} className="text-xs text-secondary flex items-center gap-1">
-                            <span className="text-secondary">✓</span> {benefit}
-                          </p>
-                        ))}
+            {bestSellingProducts.map((product, index) => {
+              const hasImage = product.image_url && product.image_url.length > 0;
+              return (
+                <motion.div
+                  key={product.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  onClick={() => handleProductClick(product)}
+                  className="bg-card rounded-xl p-4 shadow-card border border-border/50 hover:shadow-card-hover transition-all cursor-pointer"
+                >
+                  <div className="flex items-start gap-3">
+                    {hasImage ? (
+                      <img src={product.image_url!} alt={product.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-harvest-gold/20 to-accent/20 flex items-center justify-center flex-shrink-0">
+                        <Package className="w-6 h-6 text-accent" />
                       </div>
                     )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-sm">{product.name}</h3>
+                        <span className="px-2 py-0.5 bg-harvest-gold/20 text-accent text-xs font-medium rounded-full">
+                          {t.bestseller}
+                        </span>
+                      </div>
+                      {product.tagline && (
+                        <p className="text-xs text-muted-foreground line-clamp-1">{product.tagline}</p>
+                      )}
+                      {product.benefits && product.benefits.length > 0 && (
+                        <div className="mt-2 space-y-0.5">
+                          {product.benefits.slice(0, 2).map((benefit, i) => (
+                            <p key={i} className="text-xs text-secondary flex items-center gap-1">
+                              <span className="text-secondary">✓</span> {benefit}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {product.mrp > 0 && <p className="font-bold text-primary">₹{product.mrp}</p>}
                   </div>
-                  <p className="font-bold text-primary">₹{product.mrp}</p>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
         )}
       </div>
 
-      <ProductDetailSheet 
-        product={selectedProduct} 
-        onClose={() => setSelectedProduct(null)} 
-      />
+      <ProductDetailSheet product={selectedProduct} onClose={() => setSelectedProduct(null)} />
     </>
   );
 };
-

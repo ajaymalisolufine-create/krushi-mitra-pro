@@ -6,7 +6,6 @@ import { BottomNavigation } from '@/components/BottomNavigation';
 import { DashboardView } from '@/components/DashboardView';
 import { ProductsGrid } from '@/components/ProductsGrid';
 import { LanguageSelectionScreen } from '@/components/onboarding/LanguageSelectionScreen';
-import { CropSelectionScreen } from '@/components/onboarding/CropSelectionScreen';
 import { PhoneLoginScreen } from '@/components/auth/PhoneLoginScreen';
 import { AIAssistantScreen } from '@/components/screens/AIAssistantScreen';
 import { ContactScreen } from '@/components/screens/ContactScreen';
@@ -14,23 +13,22 @@ import { NotificationsScreen } from '@/components/screens/NotificationsScreen';
 import { VideosScreen } from '@/components/screens/VideosScreen';
 import { useApp } from '@/contexts/AppContext';
 
-type OnboardingStep = 'splash' | 'language' | 'crop' | 'login' | 'main';
+type OnboardingStep = 'splash' | 'language' | 'login' | 'main';
 
 const Index = () => {
   const { language, setLanguage, selectedCrop, trackInteraction, activeTab, setActiveTab } = useApp();
   const [step, setStep] = useState<OnboardingStep>('splash');
 
-  // Check if onboarding is complete
   useEffect(() => {
     const onboardingComplete = localStorage.getItem('onboarding_complete');
-    if (onboardingComplete === 'true' && selectedCrop) {
+    if (onboardingComplete === 'true') {
       setStep('main');
     }
-  }, [selectedCrop]);
+  }, []);
 
   const handleSplashComplete = () => {
     const onboardingComplete = localStorage.getItem('onboarding_complete');
-    if (onboardingComplete === 'true' && selectedCrop) {
+    if (onboardingComplete === 'true') {
       setStep('main');
     } else {
       setStep('language');
@@ -38,10 +36,6 @@ const Index = () => {
   };
 
   const handleLanguageComplete = () => {
-    setStep('crop');
-  };
-
-  const handleCropComplete = () => {
     setStep('login');
   };
 
@@ -57,49 +51,24 @@ const Index = () => {
     setStep('main');
   };
 
-  const handleLanguageBack = () => {
-    setStep('language');
-  };
-
   const renderContent = () => {
     switch (activeTab) {
-      case 'home':
-        return <DashboardView />;
-      case 'notifications':
-        return <NotificationsScreen />;
-      case 'videos':
-        return <VideosScreen />;
-      case 'products':
-        return <ProductsGrid />;
-      case 'contact':
-        return <ContactScreen />;
-      default:
-        return <DashboardView />;
+      case 'home': return <DashboardView />;
+      case 'notifications': return <NotificationsScreen />;
+      case 'videos': return <VideosScreen />;
+      case 'products': return <ProductsGrid />;
+      case 'contact': return <ContactScreen />;
+      default: return <DashboardView />;
     }
   };
 
-  // Render onboarding steps
-  if (step === 'splash') {
-    return <SplashScreen onComplete={handleSplashComplete} />;
-  }
+  if (step === 'splash') return <SplashScreen onComplete={handleSplashComplete} />;
+  if (step === 'language') return <LanguageSelectionScreen onComplete={handleLanguageComplete} />;
+  if (step === 'login') return <PhoneLoginScreen onComplete={handleLoginComplete} onSkip={handleLoginSkip} />;
 
-  if (step === 'language') {
-    return <LanguageSelectionScreen onComplete={handleLanguageComplete} />;
-  }
-
-  if (step === 'crop') {
-    return <CropSelectionScreen onComplete={handleCropComplete} onBack={handleLanguageBack} />;
-  }
-
-  if (step === 'login') {
-    return <PhoneLoginScreen onComplete={handleLoginComplete} onSkip={handleLoginSkip} />;
-  }
-
-  // Main app
   return (
     <div className="min-h-screen bg-gradient-sunrise pb-24">
       <AppHeader language={language} onLanguageChange={setLanguage} />
-      
       <main className="px-4 py-4 max-w-lg mx-auto">
         <AnimatePresence mode="wait">
           <motion.div
@@ -113,11 +82,7 @@ const Index = () => {
           </motion.div>
         </AnimatePresence>
       </main>
-
-      <BottomNavigation
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
+      <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 };
