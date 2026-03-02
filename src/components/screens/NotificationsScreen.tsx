@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Bell, Megaphone, Newspaper, Tag, ExternalLink, Calendar } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Bell, Megaphone, Newspaper, Tag, ExternalLink, Calendar, X, Clock, MessageCircle, Phone } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { usePublishedNews } from '@/hooks/useNews';
 import { useActivePromotions } from '@/hooks/usePromotions';
@@ -17,6 +17,9 @@ const translations = {
     noNews: 'कोणत्याही बातम्या नाहीत',
     noOffers: 'कोणत्याही ऑफर्स नाहीत',
     validUntil: 'पर्यंत वैध',
+    close: 'बंद करा',
+    whatsappShare: 'WhatsApp शेअर',
+    contactDealer: 'विक्रेता संपर्क',
   },
   hi: {
     title: 'सूचनाएं',
@@ -27,6 +30,9 @@ const translations = {
     noNews: 'कोई समाचार नहीं',
     noOffers: 'कोई ऑफर नहीं',
     validUntil: 'तक मान्य',
+    close: 'बंद करें',
+    whatsappShare: 'WhatsApp शेयर',
+    contactDealer: 'विक्रेता संपर्क',
   },
   en: {
     title: 'Updates',
@@ -37,6 +43,9 @@ const translations = {
     noNews: 'No news available',
     noOffers: 'No offers available',
     validUntil: 'Valid until',
+    close: 'Close',
+    whatsappShare: 'Share on WhatsApp',
+    contactDealer: 'Contact Dealer',
   },
 };
 
@@ -51,6 +60,9 @@ export const NotificationsScreen = () => {
   const { data: promotions = [] } = useActivePromotions();
 
   const [activeTab, setActiveTab] = useState<TabType>('notifications');
+  const [selectedNotification, setSelectedNotification] = useState<any>(null);
+  const [selectedNews, setSelectedNews] = useState<any>(null);
+  const [selectedPromo, setSelectedPromo] = useState<any>(null);
 
   const tabs = [
     { id: 'notifications' as TabType, label: t.notifications, icon: Bell, count: notifications.filter(n => n.status === 'sent' || n.status === 'scheduled').length },
@@ -58,11 +70,146 @@ export const NotificationsScreen = () => {
     { id: 'offers' as TabType, label: t.offers, icon: Tag, count: promotions.length },
   ];
 
-  // Show sent and scheduled notifications to users (scheduled means "coming soon")
   const visibleNotifications = notifications.filter(n => n.status === 'sent' || n.status === 'scheduled');
 
   return (
     <div className="space-y-4 animate-fade-in">
+      {/* Detail Modals */}
+      <AnimatePresence>
+        {selectedNotification && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center"
+            onClick={() => setSelectedNotification(null)}
+          >
+            <motion.div
+              initial={{ y: 100 }}
+              animate={{ y: 0 }}
+              exit={{ y: 100 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-card w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl p-6 max-h-[80vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Bell className="w-5 h-5 text-primary" />
+                </div>
+                <button onClick={() => setSelectedNotification(null)} className="p-2 rounded-full hover:bg-muted">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <h2 className="text-lg font-bold mb-2">{selectedNotification.title}</h2>
+              <p className="text-muted-foreground mb-4">{selectedNotification.message}</p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                {selectedNotification.sent_at
+                  ? format(new Date(selectedNotification.sent_at), 'dd MMM yyyy, hh:mm a')
+                  : selectedNotification.scheduled_at
+                    ? format(new Date(selectedNotification.scheduled_at), 'dd MMM yyyy, hh:mm a')
+                    : format(new Date(selectedNotification.created_at), 'dd MMM yyyy, hh:mm a')}
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {selectedNews && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center"
+            onClick={() => setSelectedNews(null)}
+          >
+            <motion.div
+              initial={{ y: 100 }}
+              animate={{ y: 0 }}
+              exit={{ y: 100 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-card w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl overflow-hidden max-h-[80vh] overflow-y-auto"
+            >
+              {selectedNews.image_url && (
+                <img src={selectedNews.image_url} alt={selectedNews.title} className="w-full h-48 object-cover" />
+              )}
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    {selectedNews.category && (
+                      <span className="px-2 py-0.5 bg-secondary/10 text-secondary text-xs font-medium rounded-full">{selectedNews.category}</span>
+                    )}
+                    {selectedNews.source && <span className="text-xs text-muted-foreground">{selectedNews.source}</span>}
+                  </div>
+                  <button onClick={() => setSelectedNews(null)} className="p-2 rounded-full hover:bg-muted">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <h2 className="text-lg font-bold mb-3">{selectedNews.title}</h2>
+                {selectedNews.content && <p className="text-muted-foreground mb-4">{selectedNews.content}</p>}
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">{format(new Date(selectedNews.published_at), 'dd MMM yyyy')}</p>
+                  {selectedNews.external_url && (
+                    <a href={selectedNews.external_url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs text-primary font-medium">
+                      Read more <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {selectedPromo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center"
+            onClick={() => setSelectedPromo(null)}
+          >
+            <motion.div
+              initial={{ y: 100 }}
+              animate={{ y: 0 }}
+              exit={{ y: 100 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-card w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl overflow-hidden max-h-[80vh] overflow-y-auto"
+            >
+              {selectedPromo.image_url && (
+                <img src={selectedPromo.image_url} alt={selectedPromo.title} className="w-full h-48 object-cover" />
+              )}
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  {selectedPromo.discount && (
+                    <span className="px-4 py-2 bg-primary text-primary-foreground text-lg font-bold rounded-full">{selectedPromo.discount}</span>
+                  )}
+                  <button onClick={() => setSelectedPromo(null)} className="p-2 rounded-full hover:bg-muted">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <h2 className="text-lg font-bold mb-2">{selectedPromo.title}</h2>
+                {selectedPromo.description && <p className="text-muted-foreground mb-4">{selectedPromo.description}</p>}
+                {selectedPromo.valid_until && (
+                  <p className="text-xs text-secondary font-medium mb-4 flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {t.validUntil}: {format(new Date(selectedPromo.valid_until), 'dd MMM yyyy')}
+                  </p>
+                )}
+                <div className="flex gap-3">
+                  <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-full font-medium text-sm">
+                    <MessageCircle className="w-4 h-4" />
+                    {t.whatsappShare}
+                  </button>
+                  <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-muted text-foreground rounded-full font-medium text-sm">
+                    <Phone className="w-4 h-4" />
+                    {t.contactDealer}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex items-center gap-2 mb-4">
         <Megaphone className="w-6 h-6 text-primary" />
         <h1 className="text-xl font-bold">{t.title}</h1>
@@ -114,7 +261,8 @@ export const NotificationsScreen = () => {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="bg-card rounded-xl p-4 shadow-card border border-border/50"
+                  onClick={() => setSelectedNotification(notification)}
+                  className="bg-card rounded-xl p-4 shadow-card border border-border/50 cursor-pointer hover:shadow-card-hover transition-all active:scale-[0.98]"
                 >
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -127,7 +275,7 @@ export const NotificationsScreen = () => {
                           <span className="px-1.5 py-0.5 text-xs bg-sky-blue/20 text-sky-blue rounded-full">Upcoming</span>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{notification.message}</p>
                       <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
                         {notification.sent_at
@@ -158,45 +306,22 @@ export const NotificationsScreen = () => {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="bg-card rounded-xl overflow-hidden shadow-card border border-border/50"
+                  onClick={() => setSelectedNews(item)}
+                  className="bg-card rounded-xl overflow-hidden shadow-card border border-border/50 cursor-pointer hover:shadow-card-hover transition-all active:scale-[0.98]"
                 >
                   {item.image_url && (
-                    <img 
-                      src={item.image_url} 
-                      alt={item.title}
-                      className="w-full h-32 object-cover"
-                    />
+                    <img src={item.image_url} alt={item.title} className="w-full h-32 object-cover" />
                   )}
                   <div className="p-4">
                     <div className="flex items-center gap-2 mb-2">
                       {item.category && (
-                        <span className="px-2 py-0.5 bg-secondary/10 text-secondary text-xs font-medium rounded-full">
-                          {item.category}
-                        </span>
+                        <span className="px-2 py-0.5 bg-secondary/10 text-secondary text-xs font-medium rounded-full">{item.category}</span>
                       )}
-                      {item.source && (
-                        <span className="text-xs text-muted-foreground">{item.source}</span>
-                      )}
+                      {item.source && <span className="text-xs text-muted-foreground">{item.source}</span>}
                     </div>
                     <h3 className="font-semibold text-sm">{item.title}</h3>
-                    {item.content && (
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{item.content}</p>
-                    )}
-                    <div className="flex items-center justify-between mt-3">
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(item.published_at), 'dd MMM yyyy')}
-                      </p>
-                      {item.external_url && (
-                        <a 
-                          href={item.external_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-xs text-primary font-medium"
-                        >
-                          Read more <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
-                    </div>
+                    {item.content && <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{item.content}</p>}
+                    <p className="text-xs text-muted-foreground mt-3">{format(new Date(item.published_at), 'dd MMM yyyy')}</p>
                   </div>
                 </motion.div>
               ))
@@ -218,27 +343,20 @@ export const NotificationsScreen = () => {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl overflow-hidden shadow-card border border-primary/20"
+                  onClick={() => setSelectedPromo(promo)}
+                  className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl overflow-hidden shadow-card border border-primary/20 cursor-pointer hover:shadow-card-hover transition-all active:scale-[0.98]"
                 >
                   {promo.image_url && (
-                    <img 
-                      src={promo.image_url} 
-                      alt={promo.title}
-                      className="w-full h-32 object-cover"
-                    />
+                    <img src={promo.image_url} alt={promo.title} className="w-full h-32 object-cover" />
                   )}
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="font-bold text-sm">{promo.title}</h3>
                       {promo.discount && (
-                        <span className="px-3 py-1 bg-primary text-primary-foreground text-sm font-bold rounded-full">
-                          {promo.discount}
-                        </span>
+                        <span className="px-3 py-1 bg-primary text-primary-foreground text-sm font-bold rounded-full">{promo.discount}</span>
                       )}
                     </div>
-                    {promo.description && (
-                      <p className="text-sm text-muted-foreground">{promo.description}</p>
-                    )}
+                    {promo.description && <p className="text-sm text-muted-foreground">{promo.description}</p>}
                     {promo.valid_until && (
                       <p className="text-xs text-secondary font-medium mt-2">
                         {t.validUntil}: {format(new Date(promo.valid_until), 'dd MMM yyyy')}

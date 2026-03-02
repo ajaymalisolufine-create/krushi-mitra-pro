@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Play, Eye, Clock, Filter, Video } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Play, Eye, Clock, Filter, Video, X, ArrowLeft } from 'lucide-react';
 import { useActiveVideos } from '@/hooks/useVideos';
 import { useApp } from '@/contexts/AppContext';
 
@@ -11,6 +11,7 @@ const translations = {
     views: 'दृश्ये',
     all: 'सर्व',
     watchNow: 'आता पहा',
+    close: 'बंद करा',
   },
   hi: {
     title: 'वीडियो',
@@ -18,6 +19,7 @@ const translations = {
     views: 'दृश्य',
     all: 'सभी',
     watchNow: 'अभी देखें',
+    close: 'बंद करें',
   },
   en: {
     title: 'Videos',
@@ -25,6 +27,7 @@ const translations = {
     views: 'views',
     all: 'All',
     watchNow: 'Watch Now',
+    close: 'Close',
   },
 };
 
@@ -40,15 +43,13 @@ export const VideosScreen = () => {
   
   const { data: videos = [], isLoading } = useActiveVideos();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [playingVideo, setPlayingVideo] = useState<string | null>(null);
 
-  // Get unique categories
   const categories = ['all', ...new Set(videos.map(v => v.category).filter(Boolean) as string[])];
   
-  // Get unique crops from videos
   const videoCrops = ['all', ...new Set(videos.map(v => v.crop).filter(Boolean) as string[])];
   const [selectedCrop, setSelectedCrop] = useState<string>('all');
 
-  // Filter videos
   const filteredVideos = videos.filter(video => {
     const categoryMatch = selectedCategory === 'all' || video.category === selectedCategory;
     const cropMatch = selectedCrop === 'all' || video.crop === selectedCrop;
@@ -57,8 +58,13 @@ export const VideosScreen = () => {
 
   const handleVideoClick = (video: typeof videos[0]) => {
     if (video.youtube_url) {
-      window.open(video.youtube_url, '_blank');
-    } else if (video.video_url) {
+      const youtubeId = extractYouTubeId(video.youtube_url);
+      if (youtubeId) {
+        setPlayingVideo(youtubeId);
+        return;
+      }
+    }
+    if (video.video_url) {
       window.open(video.video_url, '_blank');
     }
   };
@@ -78,6 +84,46 @@ export const VideosScreen = () => {
 
   return (
     <div className="space-y-4 animate-fade-in">
+      {/* In-App YouTube Player Modal */}
+      <AnimatePresence>
+        {playingVideo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/90 z-50 flex flex-col"
+          >
+            <div className="flex items-center justify-between p-4">
+              <button
+                onClick={() => setPlayingVideo(null)}
+                className="flex items-center gap-2 text-white/80 hover:text-white transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span className="text-sm font-medium">{t.close}</span>
+              </button>
+              <button
+                onClick={() => setPlayingVideo(null)}
+                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+            <div className="flex-1 flex items-center justify-center px-4 pb-4">
+              <div className="w-full max-w-3xl aspect-video rounded-xl overflow-hidden">
+                <iframe
+                  src={`https://www.youtube.com/embed/${playingVideo}?autoplay=1&rel=0`}
+                  title="YouTube video player"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full"
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex items-center gap-2 mb-4">
         <Video className="w-6 h-6 text-primary" />
         <h1 className="text-xl font-bold">{t.title}</h1>
@@ -146,7 +192,6 @@ export const VideosScreen = () => {
                 onClick={() => handleVideoClick(video)}
                 className="bg-card rounded-xl overflow-hidden shadow-card border border-border/50 cursor-pointer hover:shadow-card-hover transition-all group"
               >
-                {/* Thumbnail */}
                 <div className="relative aspect-video bg-muted">
                   {thumbnailUrl ? (
                     <img 
@@ -160,7 +205,6 @@ export const VideosScreen = () => {
                     </div>
                   )}
                   
-                  {/* Play Button Overlay */}
                   <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-all">
                     <motion.div
                       whileHover={{ scale: 1.1 }}
@@ -170,7 +214,6 @@ export const VideosScreen = () => {
                     </motion.div>
                   </div>
 
-                  {/* Duration Badge */}
                   {video.duration && (
                     <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/70 text-white text-xs rounded flex items-center gap-1">
                       <Clock className="w-3 h-3" />
@@ -179,7 +222,6 @@ export const VideosScreen = () => {
                   )}
                 </div>
 
-                {/* Video Info */}
                 <div className="p-4">
                   <h3 className="font-semibold text-sm line-clamp-2">{video.title}</h3>
                   <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
