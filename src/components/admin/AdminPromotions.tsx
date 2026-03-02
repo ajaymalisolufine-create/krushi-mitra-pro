@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Edit2, Trash2, Calendar, Tag, Percent, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Calendar, Tag, Percent, Loader2, Upload, X, Image as ImageIcon } from 'lucide-react';
 import { usePromotions, useCreatePromotion, useUpdatePromotion, useDeletePromotion, type Promotion } from '@/hooks/usePromotions';
+import { useImageUpload } from '@/hooks/useImageUpload';
 import { format } from 'date-fns';
 
 export const AdminPromotions = () => {
@@ -9,15 +10,17 @@ export const AdminPromotions = () => {
   const createPromotion = useCreatePromotion();
   const updatePromotion = useUpdatePromotion();
   const deletePromotion = useDeletePromotion();
+  const { uploadImage, isUploading } = useImageUpload();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [showModal, setShowModal] = useState(false);
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null);
 
-  // Form state
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     discount: '',
+    image_url: '',
     valid_from: '',
     valid_until: '',
     status: 'active',
@@ -44,6 +47,7 @@ export const AdminPromotions = () => {
       title: promo.title,
       description: promo.description || '',
       discount: promo.discount || '',
+      image_url: promo.image_url || '',
       valid_from: promo.valid_from ? format(new Date(promo.valid_from), 'yyyy-MM-dd') : '',
       valid_until: promo.valid_until ? format(new Date(promo.valid_until), 'yyyy-MM-dd') : '',
       status: promo.status,
@@ -57,11 +61,20 @@ export const AdminPromotions = () => {
       title: '',
       description: '',
       discount: '',
+      image_url: '',
       valid_from: format(new Date(), 'yyyy-MM-dd'),
       valid_until: '',
       status: 'active',
     });
     setShowModal(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const imageUrl = await uploadImage(file);
+    if (imageUrl) setFormData(prev => ({ ...prev, image_url: imageUrl }));
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -71,7 +84,7 @@ export const AdminPromotions = () => {
       title: formData.title,
       description: formData.description || null,
       discount: formData.discount || null,
-      image_url: null,
+      image_url: formData.image_url || null,
       valid_from: formData.valid_from ? new Date(formData.valid_from).toISOString() : new Date().toISOString(),
       valid_until: formData.valid_until ? new Date(formData.valid_until).toISOString() : null,
       status: formData.status,
@@ -98,7 +111,6 @@ export const AdminPromotions = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Promotions</h1>
@@ -113,7 +125,6 @@ export const AdminPromotions = () => {
         </button>
       </div>
 
-      {/* Promotions Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {promotions.map((promo, index) => (
           <motion.div
@@ -121,49 +132,54 @@ export const AdminPromotions = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className="bg-card rounded-2xl p-5 shadow-card border border-border/50"
+            className="bg-card rounded-2xl overflow-hidden shadow-card border border-border/50"
           >
-            <div className="flex items-start justify-between mb-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-accent flex items-center justify-center">
-                <Percent className="w-6 h-6 text-white" />
+            {promo.image_url && (
+              <img src={promo.image_url} alt={promo.title} className="w-full h-32 object-cover" />
+            )}
+            <div className="p-5">
+              <div className="flex items-start justify-between mb-3">
+                <div className="w-12 h-12 rounded-xl bg-gradient-accent flex items-center justify-center">
+                  <Percent className="w-6 h-6 text-white" />
+                </div>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(promo.status)}`}>
+                  {promo.status}
+                </span>
               </div>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(promo.status)}`}>
-                {promo.status}
-              </span>
-            </div>
 
-            <h3 className="font-bold text-lg mb-1">{promo.title}</h3>
-            <p className="text-sm text-muted-foreground mb-3">{promo.description}</p>
+              <h3 className="font-bold text-lg mb-1">{promo.title}</h3>
+              <p className="text-sm text-muted-foreground mb-3">{promo.description}</p>
 
-            <div className="flex items-center gap-2 mb-3">
-              <Tag className="w-4 h-4 text-muted-foreground" />
-              <span className="px-2 py-0.5 rounded-full bg-harvest-gold/20 text-accent text-xs font-bold">
-                {promo.discount}
-              </span>
-            </div>
+              <div className="flex items-center gap-2 mb-3">
+                <Tag className="w-4 h-4 text-muted-foreground" />
+                <span className="px-2 py-0.5 rounded-full bg-harvest-gold/20 text-accent text-xs font-bold">
+                  {promo.discount}
+                </span>
+              </div>
 
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
-              <Calendar className="w-3 h-3" />
-              <span>
-                {promo.valid_from ? format(new Date(promo.valid_from), 'MMM dd') : 'N/A'} - {promo.valid_until ? format(new Date(promo.valid_until), 'MMM dd, yyyy') : 'No end date'}
-              </span>
-            </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
+                <Calendar className="w-3 h-3" />
+                <span>
+                  {promo.valid_from ? format(new Date(promo.valid_from), 'MMM dd') : 'N/A'} - {promo.valid_until ? format(new Date(promo.valid_until), 'MMM dd, yyyy') : 'No end date'}
+                </span>
+              </div>
 
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleEdit(promo)}
-                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-muted hover:bg-primary hover:text-primary-foreground transition-colors text-sm font-medium"
-              >
-                <Edit2 className="w-4 h-4" />
-                Edit
-              </button>
-              <button
-                onClick={() => handleDelete(promo.id)}
-                disabled={deletePromotion.isPending}
-                className="px-3 py-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleEdit(promo)}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-muted hover:bg-primary hover:text-primary-foreground transition-colors text-sm font-medium"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(promo.id)}
+                  disabled={deletePromotion.isPending}
+                  className="px-3 py-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </motion.div>
         ))}
@@ -175,7 +191,7 @@ export const AdminPromotions = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-card rounded-2xl p-6 w-full max-w-lg"
+            className="bg-card rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
           >
             <h2 className="text-xl font-bold mb-4">
               {editingPromotion ? 'Edit Promotion' : 'Create New Promotion'}
@@ -202,6 +218,34 @@ export const AdminPromotions = () => {
                   placeholder="Promotion description"
                 />
               </div>
+
+              {/* Image Upload */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Promotion Image <span className="text-xs text-muted-foreground">(optional)</span></label>
+                <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleImageUpload} className="hidden" />
+                {formData.image_url ? (
+                  <div className="relative inline-block">
+                    <img src={formData.image_url} alt="Promo preview" className="w-full h-32 object-cover rounded-xl border border-border" />
+                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, image_url: '' }))}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-white rounded-full flex items-center justify-center hover:bg-destructive/80">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading}
+                    className="w-full h-24 border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center gap-2 hover:border-primary hover:bg-muted/50 transition-colors disabled:opacity-50">
+                    {isUploading ? (
+                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    ) : (
+                      <>
+                        <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Click to upload image</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Discount</label>

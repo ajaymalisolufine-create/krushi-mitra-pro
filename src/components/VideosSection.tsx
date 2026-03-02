@@ -1,5 +1,6 @@
-import { motion } from 'framer-motion';
-import { PlayCircle, Clock, Eye, Filter } from 'lucide-react';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { PlayCircle, Clock, Eye, Filter, X, ArrowLeft, Play } from 'lucide-react';
 
 interface Video {
   id: number;
@@ -8,6 +9,7 @@ interface Video {
   duration: string;
   views: string;
   category: string;
+  youtubeId?: string;
 }
 
 const videos: Video[] = [
@@ -46,8 +48,50 @@ const videos: Video[] = [
 ];
 
 export const VideosSection = () => {
+  const [playingVideo, setPlayingVideo] = useState<string | null>(null);
+
   return (
     <div className="space-y-4">
+      {/* In-App YouTube Player Modal */}
+      <AnimatePresence>
+        {playingVideo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/90 z-50 flex flex-col"
+          >
+            <div className="flex items-center justify-between p-4">
+              <button
+                onClick={() => setPlayingVideo(null)}
+                className="flex items-center gap-2 text-white/80 hover:text-white transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span className="text-sm font-medium">बंद करा</span>
+              </button>
+              <button
+                onClick={() => setPlayingVideo(null)}
+                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+            <div className="flex-1 flex items-center justify-center px-4 pb-4">
+              <div className="w-full max-w-3xl aspect-video rounded-xl overflow-hidden">
+                <iframe
+                  src={`https://www.youtube.com/embed/${playingVideo}?autoplay=1&rel=0`}
+                  title="YouTube video player"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full"
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <PlayCircle className="w-5 h-5 text-primary" />
@@ -83,6 +127,11 @@ export const VideosSection = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
+            onClick={() => {
+              if (video.youtubeId) {
+                setPlayingVideo(video.youtubeId);
+              }
+            }}
             className="bg-card rounded-2xl overflow-hidden shadow-card border border-border/50 hover:shadow-card-hover transition-all cursor-pointer group"
           >
             {/* Thumbnail */}
@@ -101,7 +150,7 @@ export const VideosSection = () => {
                   whileTap={{ scale: 0.95 }}
                   className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:bg-harvest-gold transition-colors"
                 >
-                  <PlayCircle className="w-8 h-8 text-primary group-hover:text-white transition-colors" />
+                  <Play className="w-8 h-8 text-primary group-hover:text-white transition-colors fill-current ml-1" />
                 </motion.div>
               </div>
 

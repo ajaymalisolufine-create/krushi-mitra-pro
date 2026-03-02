@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Tag, ChevronLeft, ChevronRight, MessageCircle, Phone, Clock, Loader2 } from 'lucide-react';
+import { Tag, ChevronLeft, ChevronRight, MessageCircle, Phone, Clock, Loader2, X } from 'lucide-react';
 import { useActivePromotions } from '@/hooks/usePromotions';
 import { format } from 'date-fns';
 
@@ -15,6 +15,7 @@ export const PromotionsCarousel = () => {
   const { data: promotions = [], isLoading } = useActivePromotions();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [autoPlay, setAutoPlay] = useState(true);
+  const [selectedPromo, setSelectedPromo] = useState<any>(null);
 
   useEffect(() => {
     if (!autoPlay || promotions.length === 0) return;
@@ -67,6 +68,58 @@ export const PromotionsCarousel = () => {
 
   return (
     <div className="space-y-4">
+      {/* Promo Detail Modal */}
+      <AnimatePresence>
+        {selectedPromo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center"
+            onClick={() => setSelectedPromo(null)}
+          >
+            <motion.div
+              initial={{ y: 100 }}
+              animate={{ y: 0 }}
+              exit={{ y: 100 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-card w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl overflow-hidden max-h-[80vh] overflow-y-auto"
+            >
+              {selectedPromo.image_url && (
+                <img src={selectedPromo.image_url} alt={selectedPromo.title} className="w-full h-48 object-cover" />
+              )}
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  {selectedPromo.discount && (
+                    <span className="px-4 py-2 bg-primary text-primary-foreground text-lg font-bold rounded-full">{selectedPromo.discount}</span>
+                  )}
+                  <button onClick={() => setSelectedPromo(null)} className="p-2 rounded-full hover:bg-muted">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <h2 className="text-lg font-bold mb-2">{selectedPromo.title}</h2>
+                {selectedPromo.description && <p className="text-muted-foreground mb-4">{selectedPromo.description}</p>}
+                {selectedPromo.valid_until && (
+                  <p className="text-xs text-secondary font-medium mb-4 flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    वैध: {format(new Date(selectedPromo.valid_until), 'dd MMM yyyy')} पर्यंत
+                  </p>
+                )}
+                <div className="flex gap-3">
+                  <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-full font-medium text-sm">
+                    <MessageCircle className="w-4 h-4" />
+                    WhatsApp शेअर
+                  </button>
+                  <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-muted text-foreground rounded-full font-medium text-sm">
+                    <Phone className="w-4 h-4" />
+                    विक्रेता संपर्क
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="flex items-center gap-2">
         <Tag className="w-5 h-5 text-primary" />
         <h2 className="text-lg font-semibold">विशेष ऑफर्स</h2>
@@ -74,7 +127,7 @@ export const PromotionsCarousel = () => {
 
       <div className="relative">
         {/* Carousel */}
-        <div className="overflow-hidden rounded-2xl">
+        <div className="overflow-hidden rounded-2xl cursor-pointer" onClick={() => setSelectedPromo(currentPromo)}>
           <AnimatePresence mode="wait">
             <motion.div
               key={currentIndex}
