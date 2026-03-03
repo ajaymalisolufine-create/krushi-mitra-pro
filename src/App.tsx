@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppProvider } from "@/contexts/AppContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import InstallApp from "./pages/InstallApp";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { AdminProducts } from "./components/admin/AdminProducts";
@@ -28,6 +29,7 @@ const App = () => (
           <Routes>
             {/* Farmer App */}
             <Route path="/" element={<Index />} />
+            <Route path="/install" element={<InstallApp />} />
             
             {/* Admin Panel */}
             <Route path="/admin" element={<AdminLayout />}>
