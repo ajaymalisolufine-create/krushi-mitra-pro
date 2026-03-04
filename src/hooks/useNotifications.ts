@@ -11,6 +11,11 @@ export interface Notification {
   scheduled_at: string | null;
   sent_at: string | null;
   status: string;
+  category: string | null;
+  redirect_target: string | null;
+  image_url: string | null;
+  popup_enabled: boolean;
+  push_enabled: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -116,6 +121,24 @@ export const useSentNotifications = () => {
         .from('notifications')
         .select('*')
         .eq('status', 'sent')
+        .order('sent_at', { ascending: false });
+
+      if (error) throw error;
+      return data as Notification[];
+    },
+  });
+};
+
+// Hook for active popup notifications
+export const useActivePopupNotifications = () => {
+  return useQuery({
+    queryKey: ['notifications', 'popup'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('status', 'sent')
+        .eq('popup_enabled', true)
         .order('sent_at', { ascending: false });
 
       if (error) throw error;

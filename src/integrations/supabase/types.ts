@@ -142,9 +142,14 @@ export type Database = {
       }
       notifications: {
         Row: {
+          category: string | null
           created_at: string
           id: string
+          image_url: string | null
           message: string
+          popup_enabled: boolean | null
+          push_enabled: boolean | null
+          redirect_target: string | null
           scheduled_at: string | null
           sent_at: string | null
           status: string
@@ -154,9 +159,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
           id?: string
+          image_url?: string | null
           message: string
+          popup_enabled?: boolean | null
+          push_enabled?: boolean | null
+          redirect_target?: string | null
           scheduled_at?: string | null
           sent_at?: string | null
           status?: string
@@ -166,9 +176,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          category?: string | null
           created_at?: string
           id?: string
+          image_url?: string | null
           message?: string
+          popup_enabled?: boolean | null
+          push_enabled?: boolean | null
+          redirect_target?: string | null
           scheduled_at?: string | null
           sent_at?: string | null
           status?: string
