@@ -99,8 +99,8 @@ export const NotificationsScreen = () => {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <h2 className="text-lg font-bold mb-2">{selectedNotification.title}</h2>
-              <p className="text-muted-foreground mb-4">{selectedNotification.message}</p>
+              <h2 className="text-lg font-bold mb-2">{selectedNotification._displayTitle || selectedNotification.title}</h2>
+              <p className="text-muted-foreground mb-4">{selectedNotification._displayMessage || selectedNotification.message}</p>
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
                 {selectedNotification.sent_at
@@ -255,13 +255,18 @@ export const NotificationsScreen = () => {
                 <p>{t.noNotifications}</p>
               </div>
             ) : (
-              visibleNotifications.map((notification, index) => (
+              visibleNotifications.map((notification, index) => {
+                const trans = notification.translations;
+                const lang = language as string;
+                const displayTitle = (trans && trans[lang]?.title) || notification.title;
+                const displayMessage = (trans && trans[lang]?.message) || notification.message;
+                return (
                 <motion.div
                   key={notification.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  onClick={() => setSelectedNotification(notification)}
+                  onClick={() => setSelectedNotification({ ...notification, _displayTitle: displayTitle, _displayMessage: displayMessage })}
                   className="bg-card rounded-xl p-4 shadow-card border border-border/50 cursor-pointer hover:shadow-card-hover transition-all active:scale-[0.98]"
                 >
                   <div className="flex items-start gap-3">
@@ -270,12 +275,12 @@ export const NotificationsScreen = () => {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-sm">{notification.title}</h3>
+                        <h3 className="font-semibold text-sm">{displayTitle}</h3>
                         {notification.status === 'scheduled' && (
                           <span className="px-1.5 py-0.5 text-xs bg-sky-blue/20 text-sky-blue rounded-full">Upcoming</span>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{notification.message}</p>
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{displayMessage}</p>
                       <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
                         {notification.sent_at
@@ -287,7 +292,8 @@ export const NotificationsScreen = () => {
                     </div>
                   </div>
                 </motion.div>
-              ))
+                );
+              })
             )}
           </>
         )}

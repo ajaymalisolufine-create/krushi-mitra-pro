@@ -31,6 +31,14 @@ const getCTALabel = (category: string | null, language: string) => {
       default: return 'अधिक जाणून घ्या';
     }
   }
+  if (language === 'hi') {
+    switch (category) {
+      case 'video': return 'वीडियो देखें';
+      case 'offer': return 'ऑफर देखें';
+      case 'news': return 'और पढ़ें';
+      default: return 'और जानें';
+    }
+  }
   switch (category) {
     case 'video': return 'Watch Video';
     case 'offer': return 'View Offer';
@@ -46,6 +54,18 @@ const getRedirectTab = (category: string | null): string => {
     case 'news': return 'updates';
     default: return 'updates';
   }
+};
+
+/** Get translated title/message based on language, fallback to default */
+const getTranslatedContent = (notif: Notification, language: string) => {
+  const translations = notif.translations as Record<string, { title: string; message: string }> | null;
+  if (translations && translations[language]) {
+    return {
+      title: translations[language].title || notif.title,
+      message: translations[language].message || notif.message,
+    };
+  }
+  return { title: notif.title, message: notif.message };
 };
 
 export const PopupNotification = () => {
@@ -79,9 +99,11 @@ export const PopupNotification = () => {
     setCurrentPopup(null);
   };
 
+  const content = currentPopup ? getTranslatedContent(currentPopup, language) : null;
+
   return (
     <AnimatePresence>
-      {visible && currentPopup && (
+      {visible && currentPopup && content && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -97,18 +119,12 @@ export const PopupNotification = () => {
             className="bg-card rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-border/50"
             onClick={e => e.stopPropagation()}
           >
-            {/* Image */}
             {currentPopup.image_url && (
               <div className="w-full h-44 overflow-hidden">
-                <img
-                  src={currentPopup.image_url}
-                  alt={currentPopup.title}
-                  className="w-full h-full object-cover"
-                />
+                <img src={currentPopup.image_url} alt={content.title} className="w-full h-full object-cover" />
               </div>
             )}
 
-            {/* Content */}
             <div className="p-5 space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
@@ -119,20 +135,13 @@ export const PopupNotification = () => {
                     {currentPopup.category || 'update'}
                   </span>
                 </div>
-                <button
-                  onClick={handleClose}
-                  className="p-1.5 rounded-full hover:bg-muted transition-colors"
-                >
+                <button onClick={handleClose} className="p-1.5 rounded-full hover:bg-muted transition-colors">
                   <X className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
 
-              <h3 className="text-lg font-bold text-foreground leading-tight">
-                {currentPopup.title}
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {currentPopup.message}
-              </p>
+              <h3 className="text-lg font-bold text-foreground leading-tight">{content.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">{content.message}</p>
 
               <button
                 onClick={handleCTA}
