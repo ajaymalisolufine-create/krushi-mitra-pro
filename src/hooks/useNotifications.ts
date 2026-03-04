@@ -16,6 +16,7 @@ export interface Notification {
   image_url: string | null;
   popup_enabled: boolean;
   push_enabled: boolean;
+  translations: Record<string, { title: string; message: string }> | null;
   created_at: string;
   updated_at: string;
 }

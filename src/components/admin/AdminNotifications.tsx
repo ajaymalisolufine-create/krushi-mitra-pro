@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Send, Bell, Users, MapPin, Grape, Clock, Trash2, Loader2, CheckCircle, Image, Megaphone, Newspaper, Play, RefreshCw, Eye, BellRing } from 'lucide-react';
+import { Plus, Send, Bell, Users, MapPin, Grape, Clock, Trash2, Loader2, CheckCircle, Eye, BellRing, Newspaper, Megaphone, Play, RefreshCw, Sparkles } from 'lucide-react';
 import { useNotifications, useCreateNotification, useUpdateNotification, useDeleteNotification, type Notification } from '@/hooks/useNotifications';
 import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const CATEGORY_OPTIONS = [
   { value: 'news', label: 'News', icon: Newspaper },
@@ -18,6 +20,7 @@ export const AdminNotifications = () => {
   const deleteNotification = useDeleteNotification();
 
   const [showModal, setShowModal] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     message: '',
@@ -29,6 +32,7 @@ export const AdminNotifications = () => {
     image_url: '',
     popup_enabled: false,
     push_enabled: false,
+    translations: {} as Record<string, { title: string; message: string }>,
   });
 
   const getStatusColor = (status: string) => {
@@ -78,9 +82,41 @@ export const AdminNotifications = () => {
     setFormData({
       title: '', message: '', target_type: 'all', target_value: 'All',
       scheduled_at: '', category: 'update', redirect_target: '', image_url: '',
-      popup_enabled: false, push_enabled: false,
+      popup_enabled: false, push_enabled: false, translations: {},
     });
     setShowModal(true);
+  };
+
+  const handleAIGenerate = async () => {
+    if (!formData.title.trim()) {
+      toast.error('Enter a title/topic first, then generate');
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-notification-content', {
+        body: {
+          title: formData.title,
+          category: formData.category,
+          context: formData.message || undefined,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const translations = data.translations as Record<string, { title: string; message: string }>;
+      setFormData(prev => ({
+        ...prev,
+        title: translations.en?.title || prev.title,
+        message: translations.en?.message || prev.message,
+        translations,
+      }));
+      toast.success('AI content generated with translations!');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to generate content');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent, isDraft: boolean = false) => {
@@ -98,8 +134,9 @@ export const AdminNotifications = () => {
       image_url: formData.image_url || null,
       popup_enabled: formData.popup_enabled,
       push_enabled: formData.push_enabled,
+      translations: Object.keys(formData.translations).length > 0 ? formData.translations : null,
     };
-    createNotification.mutate(notificationData, {
+    createNotification.mutate(notificationData as any, {
       onSuccess: () => setShowModal(false),
     });
   };
@@ -157,6 +194,7 @@ export const AdminNotifications = () => {
         <div className="divide-y divide-border">
           {notifications.map((notif, index) => {
             const TargetIcon = getTargetIcon(notif.target_type);
+            const hasTranslations = notif.translations && Object.keys(notif.translations as object).length > 0;
             return (
               <motion.div key={notif.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }} className="p-4 hover:bg-muted/30 transition-colors">
                 <div className="flex items-start gap-4">
@@ -167,6 +205,9 @@ export const AdminNotifications = () => {
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <h3 className="font-semibold text-sm">{notif.title}</h3>
                       <div className="flex items-center gap-1.5 shrink-0">
+                        {hasTranslations && (
+                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/20 text-purple-600">🌐 3 langs</span>
+                        )}
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(notif.category)}`}>
                           {notif.category || 'update'}
                         </span>
@@ -206,16 +247,12 @@ export const AdminNotifications = () => {
       {/* Create Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-card rounded-2xl p-6 w-full max-w-lg my-4">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-card rounded-2xl p-6 w-full max-w-lg my-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">Create Notification</h2>
             <form className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Title</label>
-                <input type="text" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Notification title" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Message</label>
-                <textarea value={formData.message} onChange={e => setFormData({ ...formData, message: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary" rows={3} placeholder="Notification message..." required />
+                <label className="block text-sm font-medium mb-1">Title / Topic</label>
+                <input type="text" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g. New grape spray schedule" required />
               </div>
 
               {/* Category */}
@@ -231,6 +268,44 @@ export const AdminNotifications = () => {
                   ))}
                 </div>
               </div>
+
+              {/* AI Generate Button */}
+              <button
+                type="button"
+                onClick={handleAIGenerate}
+                disabled={isGenerating || !formData.title.trim()}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isGenerating ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Generating descriptions & translations...</>
+                ) : (
+                  <><Sparkles className="w-4 h-4" /> AI Generate Description + Translations (MR/HI/EN)</>
+                )}
+              </button>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Message</label>
+                <textarea value={formData.message} onChange={e => setFormData({ ...formData, message: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary" rows={3} placeholder="Persuasive description for farmers..." required />
+              </div>
+
+              {/* Translation Preview */}
+              {Object.keys(formData.translations).length > 0 && (
+                <div className="rounded-xl border border-border bg-muted/50 p-4 space-y-3">
+                  <p className="text-xs font-semibold text-primary flex items-center gap-1"><Sparkles className="w-3 h-3" /> AI Translations Preview</p>
+                  {(['mr', 'hi', 'en'] as const).map(lang => {
+                    const t = formData.translations[lang];
+                    if (!t) return null;
+                    const label = lang === 'mr' ? '🇮🇳 Marathi' : lang === 'hi' ? '🇮🇳 Hindi' : '🇬🇧 English';
+                    return (
+                      <div key={lang} className="space-y-1">
+                        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+                        <p className="text-sm font-semibold">{t.title}</p>
+                        <p className="text-xs text-muted-foreground">{t.message}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* Notification Type Toggles */}
               <div>

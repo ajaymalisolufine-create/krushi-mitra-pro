@@ -156,6 +156,7 @@ export type Database = {
           target_type: string | null
           target_value: string | null
           title: string
+          translations: Json | null
           updated_at: string
         }
         Insert: {
@@ -173,6 +174,7 @@ export type Database = {
           target_type?: string | null
           target_value?: string | null
           title: string
+          translations?: Json | null
           updated_at?: string
         }
         Update: {
@@ -190,6 +192,7 @@ export type Database = {
           target_type?: string | null
           target_value?: string | null
           title?: string
+          translations?: Json | null
           updated_at?: string
         }
         Relationships: []
