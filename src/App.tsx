@@ -16,6 +16,7 @@ import { AdminNews } from "./components/admin/AdminNews";
 import { AdminNotifications } from "./components/admin/AdminNotifications";
 import { AdminDealers } from "./components/admin/AdminDealers";
 import { AdminSettings } from "./components/admin/AdminSettings";
+import { PopupNotification } from "./components/PopupNotification";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <PopupNotification />
         <BrowserRouter>
           <Routes>
             {/* Farmer App */}
