@@ -16,6 +16,7 @@ import {
   Sprout,
   ChevronRight,
   Loader2,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { AdminLogin } from './AdminLogin';
 import { AdminSetup } from './AdminSetup';
@@ -26,6 +27,7 @@ const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
   { id: 'products', label: 'Products', icon: Package, path: '/admin/products' },
   { id: 'promotions', label: 'Promotions', icon: Tag, path: '/admin/promotions' },
+  { id: 'banners', label: 'Banners', icon: ImageIcon, path: '/admin/banners' },
   { id: 'videos', label: 'Videos', icon: PlayCircle, path: '/admin/videos' },
   { id: 'news', label: 'News', icon: Newspaper, path: '/admin/news' },
   { id: 'notifications', label: 'Notifications', icon: Bell, path: '/admin/notifications' },

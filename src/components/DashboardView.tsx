@@ -1,4 +1,4 @@
-import { WeatherWidget } from './WeatherWidget';
+import { BannerCarousel } from './BannerCarousel';
 import { TrendingProducts } from './TrendingProducts';
 import { BestSellingProducts } from './BestSellingProducts';
 import { PromotionsCarousel } from './PromotionsCarousel';
@@ -8,7 +8,7 @@ import { VideosSection } from './VideosSection';
 export const DashboardView = () => {
   return (
     <div className="space-y-6 animate-fade-in">
-      <WeatherWidget />
+      <BannerCarousel />
       <PromotionsCarousel />
       <TrendingProducts />
       <BestSellingProducts />
