@@ -16,12 +16,13 @@ import { AdminNews } from "./components/admin/AdminNews";
 import { AdminNotifications } from "./components/admin/AdminNotifications";
 import { AdminDealers } from "./components/admin/AdminDealers";
 import { AdminSettings } from "./components/admin/AdminSettings";
+import { AdminBanners } from "./components/admin/AdminBanners";
 import { PopupNotification } from "./components/PopupNotification";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 30, // 30 seconds
+      staleTime: 1000 * 30,
       refetchOnWindowFocus: true,
       refetchOnMount: true,
       refetchOnReconnect: true,
@@ -39,15 +40,14 @@ const App = () => (
         <PopupNotification />
         <BrowserRouter>
           <Routes>
-            {/* Farmer App */}
             <Route path="/" element={<Index />} />
             <Route path="/install" element={<InstallApp />} />
             
-            {/* Admin Panel */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
               <Route path="products" element={<AdminProducts />} />
               <Route path="promotions" element={<AdminPromotions />} />
+              <Route path="banners" element={<AdminBanners />} />
               <Route path="videos" element={<AdminVideos />} />
               <Route path="news" element={<AdminNews />} />
               <Route path="notifications" element={<AdminNotifications />} />
@@ -55,7 +55,6 @@ const App = () => (
               <Route path="settings" element={<AdminSettings />} />
             </Route>
             
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
