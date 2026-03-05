@@ -18,7 +18,17 @@ import { AdminDealers } from "./components/admin/AdminDealers";
 import { AdminSettings } from "./components/admin/AdminSettings";
 import { PopupNotification } from "./components/PopupNotification";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 30, // 30 seconds
+      refetchOnWindowFocus: true,
+      refetchOnMount: true,
+      refetchOnReconnect: true,
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
