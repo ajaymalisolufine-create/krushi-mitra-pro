@@ -2,8 +2,9 @@ import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   Plus, Search, Edit2, Trash2, Package, Loader2,
-  TrendingUp, Star, Upload, X, Image as ImageIcon, Check, Sparkles,
+  TrendingUp, Star, Upload, X, Image as ImageIcon, Check, Sparkles, FileSpreadsheet,
 } from 'lucide-react';
+import { AdminBulkUpload } from './AdminBulkUpload';
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, type Product } from '@/hooks/useProducts';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -13,6 +14,7 @@ import { TranslationPreview } from './TranslationPreview';
 import { allIndianCrops, indianStates } from '@/lib/crops';
 
 export const AdminProducts = () => {
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
   const { data: products = [], isLoading } = useProducts();
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
@@ -151,6 +153,10 @@ export const AdminProducts = () => {
     }
   };
 
+  if (showBulkUpload) {
+    return <AdminBulkUpload onBack={() => setShowBulkUpload(false)} />;
+  }
+
   if (isLoading) {
     return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
@@ -162,9 +168,14 @@ export const AdminProducts = () => {
           <h1 className="text-2xl font-bold text-foreground">Products</h1>
           <p className="text-muted-foreground">Manage your product catalog ({products.length} products)</p>
         </div>
-        <button onClick={handleOpenCreate} className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors">
-          <Plus className="w-5 h-5" /> Add Product
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setShowBulkUpload(true)} className="flex items-center gap-2 px-4 py-2.5 border border-border text-foreground rounded-xl font-medium hover:bg-muted transition-colors">
+            <FileSpreadsheet className="w-5 h-5" /> Bulk Upload
+          </button>
+          <button onClick={handleOpenCreate} className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors">
+            <Plus className="w-5 h-5" /> Add Product
+          </button>
+        </div>
       </div>
 
       <div className="relative">
