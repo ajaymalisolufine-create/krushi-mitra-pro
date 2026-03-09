@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          id: string
+          key: string
+          updated_at: string
+          value: string | null
+        }
+        Insert: {
+          id?: string
+          key: string
+          updated_at?: string
+          value?: string | null
+        }
+        Update: {
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: string | null
+        }
+        Relationships: []
+      }
       banners: {
         Row: {
           created_at: string
@@ -25,6 +46,7 @@ export type Database = {
           sort_order: number
           title: string
           updated_at: string
+          video_url: string | null
         }
         Insert: {
           created_at?: string
@@ -36,6 +58,7 @@ export type Database = {
           sort_order?: number
           title: string
           updated_at?: string
+          video_url?: string | null
         }
         Update: {
           created_at?: string
@@ -47,6 +70,7 @@ export type Database = {
           sort_order?: number
           title?: string
           updated_at?: string
+          video_url?: string | null
         }
         Relationships: []
       }
@@ -146,7 +170,9 @@ export type Database = {
           source: string | null
           status: string
           title: string
+          translations: Json | null
           updated_at: string
+          video_url: string | null
         }
         Insert: {
           category?: string | null
@@ -159,7 +185,9 @@ export type Database = {
           source?: string | null
           status?: string
           title: string
+          translations?: Json | null
           updated_at?: string
+          video_url?: string | null
         }
         Update: {
           category?: string | null
@@ -172,7 +200,9 @@ export type Database = {
           source?: string | null
           status?: string
           title?: string
+          translations?: Json | null
           updated_at?: string
+          video_url?: string | null
         }
         Relationships: []
       }
@@ -307,6 +337,7 @@ export type Database = {
           name: string
           status: string
           tagline: string | null
+          translations: Json | null
           updated_at: string
         }
         Insert: {
@@ -326,6 +357,7 @@ export type Database = {
           name: string
           status?: string
           tagline?: string | null
+          translations?: Json | null
           updated_at?: string
         }
         Update: {
@@ -345,6 +377,7 @@ export type Database = {
           name?: string
           status?: string
           tagline?: string | null
+          translations?: Json | null
           updated_at?: string
         }
         Relationships: []
@@ -354,37 +387,46 @@ export type Database = {
           created_at: string
           description: string | null
           discount: string | null
+          external_url: string | null
           id: string
           image_url: string | null
           status: string
           title: string
+          translations: Json | null
           updated_at: string
           valid_from: string
           valid_until: string | null
+          video_url: string | null
         }
         Insert: {
           created_at?: string
           description?: string | null
           discount?: string | null
+          external_url?: string | null
           id?: string
           image_url?: string | null
           status?: string
           title: string
+          translations?: Json | null
           updated_at?: string
           valid_from?: string
           valid_until?: string | null
+          video_url?: string | null
         }
         Update: {
           created_at?: string
           description?: string | null
           discount?: string | null
+          external_url?: string | null
           id?: string
           image_url?: string | null
           status?: string
           title?: string
+          translations?: Json | null
           updated_at?: string
           valid_from?: string
           valid_until?: string | null
+          video_url?: string | null
         }
         Relationships: []
       }
