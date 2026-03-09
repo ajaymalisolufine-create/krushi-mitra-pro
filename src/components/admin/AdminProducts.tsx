@@ -168,9 +168,14 @@ export const AdminProducts = () => {
           <h1 className="text-2xl font-bold text-foreground">Products</h1>
           <p className="text-muted-foreground">Manage your product catalog ({products.length} products)</p>
         </div>
-        <button onClick={handleOpenCreate} className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors">
-          <Plus className="w-5 h-5" /> Add Product
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setShowBulkUpload(true)} className="flex items-center gap-2 px-4 py-2.5 border border-border text-foreground rounded-xl font-medium hover:bg-muted transition-colors">
+            <FileSpreadsheet className="w-5 h-5" /> Bulk Upload
+          </button>
+          <button onClick={handleOpenCreate} className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors">
+            <Plus className="w-5 h-5" /> Add Product
+          </button>
+        </div>
       </div>
 
       <div className="relative">
