@@ -122,6 +122,39 @@ export type Database = {
         }
         Relationships: []
       }
+      import_logs: {
+        Row: {
+          created_at: string | null
+          failed_records: number | null
+          file_name: string
+          id: string
+          status: string | null
+          successful_records: number | null
+          total_records: number | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          failed_records?: number | null
+          file_name: string
+          id?: string
+          status?: string | null
+          successful_records?: number | null
+          total_records?: number | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          failed_records?: number | null
+          file_name?: string
+          id?: string
+          status?: string | null
+          successful_records?: number | null
+          total_records?: number | null
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       lead_interactions: {
         Row: {
           created_at: string
@@ -348,6 +381,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      product_import_temp: {
+        Row: {
+          available_states: string | null
+          batch_id: string
+          benefits: string | null
+          best_seller: boolean | null
+          category: string | null
+          created_at: string | null
+          description_en: string | null
+          description_hi: string | null
+          description_mr: string | null
+          dosage: string | null
+          error_message: string | null
+          id: string
+          import_status: string | null
+          mrp: number | null
+          product_image: string | null
+          product_name: string
+          recommended_crops: string | null
+          status: string | null
+          tagline: string | null
+          trending_product: boolean | null
+        }
+        Insert: {
+          available_states?: string | null
+          batch_id: string
+          benefits?: string | null
+          best_seller?: boolean | null
+          category?: string | null
+          created_at?: string | null
+          description_en?: string | null
+          description_hi?: string | null
+          description_mr?: string | null
+          dosage?: string | null
+          error_message?: string | null
+          id?: string
+          import_status?: string | null
+          mrp?: number | null
+          product_image?: string | null
+          product_name: string
+          recommended_crops?: string | null
+          status?: string | null
+          tagline?: string | null
+          trending_product?: boolean | null
+        }
+        Update: {
+          available_states?: string | null
+          batch_id?: string
+          benefits?: string | null
+          best_seller?: boolean | null
+          category?: string | null
+          created_at?: string | null
+          description_en?: string | null
+          description_hi?: string | null
+          description_mr?: string | null
+          dosage?: string | null
+          error_message?: string | null
+          id?: string
+          import_status?: string | null
+          mrp?: number | null
+          product_image?: string | null
+          product_name?: string
+          recommended_crops?: string | null
+          status?: string | null
+          tagline?: string | null
+          trending_product?: boolean | null
+        }
+        Relationships: []
       }
       products: {
         Row: {
