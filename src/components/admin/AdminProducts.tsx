@@ -14,6 +14,7 @@ import { TranslationPreview } from './TranslationPreview';
 import { allIndianCrops, indianStates } from '@/lib/crops';
 
 export const AdminProducts = () => {
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
   const { data: products = [], isLoading } = useProducts();
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
