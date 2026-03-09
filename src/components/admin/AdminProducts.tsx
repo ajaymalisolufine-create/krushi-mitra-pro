@@ -2,8 +2,9 @@ import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   Plus, Search, Edit2, Trash2, Package, Loader2,
-  TrendingUp, Star, Upload, X, Image as ImageIcon, Check, Sparkles,
+  TrendingUp, Star, Upload, X, Image as ImageIcon, Check, Sparkles, FileSpreadsheet,
 } from 'lucide-react';
+import { AdminBulkUpload } from './AdminBulkUpload';
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, type Product } from '@/hooks/useProducts';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
