@@ -26,6 +26,7 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+  const [devOtp, setDevOtp] = useState<string | null>(null);
 
   const getText = (mr: string, hi: string, en: string) => {
     switch (language) {
@@ -45,7 +46,6 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
       });
 
       const { latitude, longitude } = position.coords;
-      // Reverse geocode using free API
       const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`);
       const data = await res.json();
       
@@ -58,7 +58,6 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
           setDistrict(data.address.county || data.address.state_district || '');
         }
         if (data.address.state) {
-          // Try to match with our states list
           const matchedState = indianStates.find(s => 
             data.address.state.toLowerCase().includes(s.toLowerCase()) ||
             s.toLowerCase().includes(data.address.state.toLowerCase())
@@ -104,14 +103,25 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
     setIsLoading(true);
     try {
       const fullPhone = `+91${cleanPhone}`;
-      const { error } = await supabase.auth.signInWithOtp({ phone: fullPhone });
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke('send-otp', {
+        body: { phone: fullPhone },
+      });
+
+      if (error) throw new Error(error.message || 'Failed to send OTP');
+      if (data?.error) throw new Error(data.error);
+
+      // Dev mode: show OTP if returned
+      if (data?.otp) {
+        setDevOtp(data.otp);
+      }
 
       await trackInteraction('phone_login', 'otp_sent', { phone: fullPhone, pincode });
       setStep('otp');
       toast({
         title: getText('OTP पाठवला', 'OTP भेजा गया', 'OTP Sent'),
-        description: getText('कृपया तुमच्या फोनवर आलेला OTP प्रविष्ट करा', 'कृपया अपने फोन पर आए OTP को दर्ज करें', 'Please enter the OTP sent to your phone'),
+        description: data?.otp
+          ? getText(`Dev Mode OTP: ${data.otp}`, `Dev Mode OTP: ${data.otp}`, `Dev Mode OTP: ${data.otp}`)
+          : getText('कृपया तुमच्या फोनवर आलेला OTP प्रविष्ट करा', 'कृपया अपने फोन पर आए OTP को दर्ज करें', 'Please enter the OTP sent to your phone'),
       });
     } catch (error: any) {
       toast({
@@ -137,29 +147,28 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
     setIsLoading(true);
     try {
       const fullPhone = `+91${phoneNumber.replace(/\D/g, '')}`;
-      const { data: authData, error } = await supabase.auth.verifyOtp({
-        phone: fullPhone,
-        token: otp,
-        type: 'sms',
+      const { data, error } = await supabase.functions.invoke('verify-otp', {
+        body: {
+          phone: fullPhone,
+          otp,
+          name: name || null,
+          pincode,
+          city: city || null,
+          district: district || null,
+          state: state || 'Maharashtra',
+          language,
+        },
       });
 
-      if (error) throw error;
+      if (error) throw new Error(error.message || 'Failed to verify OTP');
+      if (data?.error) throw new Error(data.error);
 
-      if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('user_profiles')
-          .upsert({
-            user_id: authData.user.id,
-            phone: fullPhone,
-            pincode,
-            name: name || null,
-            city: city || null,
-            district: district || null,
-            state: state || 'Maharashtra',
-            language,
-          }, { onConflict: 'user_id' });
-
-        if (profileError) console.error('Failed to save profile:', profileError);
+      // Set the session from the response
+      if (data?.session) {
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
       }
 
       setPhone(fullPhone);
@@ -346,6 +355,14 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
             </>
           ) : (
             <>
+              {/* Dev mode OTP hint */}
+              {devOtp && (
+                <div className="bg-accent/20 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground">{getText('Dev Mode OTP', 'Dev Mode OTP', 'Dev Mode OTP')}</p>
+                  <p className="text-lg font-bold text-primary tracking-widest">{devOtp}</p>
+                </div>
+              )}
+
               <div className="flex justify-center">
                 <InputOTP value={otp} onChange={setOtp} maxLength={6}>
                   <InputOTPGroup>
@@ -369,7 +386,7 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
                   getText('सत्यापित करा', 'सत्यापित करें', 'Verify')
                 )}
               </Button>
-              <Button variant="ghost" onClick={() => setStep('phone')} className="w-full">
+              <Button variant="ghost" onClick={() => { setStep('phone'); setDevOtp(null); }} className="w-full">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 {getText('नंबर बदला', 'नंबर बदलें', 'Change Number')}
               </Button>

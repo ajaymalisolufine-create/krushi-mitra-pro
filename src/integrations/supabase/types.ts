@@ -263,6 +263,36 @@ export type Database = {
         }
         Relationships: []
       }
+      otp_codes: {
+        Row: {
+          attempts: number
+          created_at: string
+          expires_at: string
+          id: string
+          otp_code: string
+          phone: string
+          verified: boolean
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          expires_at: string
+          id?: string
+          otp_code: string
+          phone: string
+          verified?: boolean
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          expires_at?: string
+          id?: string
+          otp_code?: string
+          phone?: string
+          verified?: boolean
+        }
+        Relationships: []
+      }
       product_enquiries: {
         Row: {
           city: string | null
