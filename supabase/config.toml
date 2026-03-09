@@ -1,1 +1,16 @@
 project_id = "qdftzgpcilbfhuhrrciu"
+
+[functions.send-otp]
+verify_jwt = false
+
+[functions.verify-otp]
+verify_jwt = false
+
+[functions.admin-bootstrap]
+verify_jwt = false
+
+[functions.ai-chat]
+verify_jwt = false
+
+[functions.generate-notification-content]
+verify_jwt = false
