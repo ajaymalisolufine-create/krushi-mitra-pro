@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { title, category, context } = await req.json();
+    const { title, category, context, contentType } = await req.json();
 
     if (!title) {
       return new Response(
@@ -26,6 +26,13 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    const contentTypeContext: Record<string, string> = {
+      notification: "notification for farmers about",
+      product: "agricultural product description for",
+      news: "agriculture news article about",
+      promotion: "promotional offer for farmers about",
+    };
+
     const categoryContext: Record<string, string> = {
       news: "agricultural news, government schemes, market updates, or farming innovations",
       offer: "product discounts, special deals, seasonal offers on fertilizers, pesticides, or farm inputs",
@@ -33,7 +40,9 @@ serve(async (req) => {
       update: "app updates, new features, important announcements for farmers",
     };
 
-    const catDesc = categoryContext[category] || categoryContext.update;
+    const type = contentType || "notification";
+    const typeDesc = contentTypeContext[type] || contentTypeContext.notification;
+    const catDesc = categoryContext[category] || "";
 
     const systemPrompt = `You are an expert agricultural marketing copywriter for Indian farmers. You write in a professional, trust-building, and conversion-focused tone — similar to top agricultural brands and marketplaces.
 
@@ -56,11 +65,11 @@ You must respond with a JSON object containing translations in 3 languages with 
 
 The translations must preserve the EXACT same meaning and intent across all languages. The Marathi and Hindi should feel natural, not machine-translated.`;
 
-    const userPrompt = `Generate a persuasive notification for Indian farmers.
+    const userPrompt = `Generate a compelling ${typeDesc} Indian farmers.
 
 Title/Topic: "${title}"
-Category: ${category} (${catDesc})
-${context ? `Additional context: ${context}` : ""}
+${category ? `Category: ${category} (${catDesc})` : ""}
+${context ? `Additional context/description: ${context}` : ""}
 
 Create a compelling title and descriptive message for each language (English, Marathi, Hindi). The message should be 2-3 sentences that clearly explain the value to farmers and encourage action.`;
 
@@ -105,7 +114,6 @@ Create a compelling title and descriptive message for each language (English, Ma
       throw new Error("No content generated");
     }
 
-    // Parse JSON from response (handle markdown code blocks)
     let parsed;
     try {
       const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
