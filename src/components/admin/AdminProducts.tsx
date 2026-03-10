@@ -127,7 +127,6 @@ export const AdminProducts = () => {
       }));
     }
     // Reset generating state after completion
-    setIsGenerating(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
