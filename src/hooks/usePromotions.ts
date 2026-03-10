@@ -8,6 +8,9 @@ export interface Promotion {
   description: string | null;
   discount: string | null;
   image_url: string | null;
+  video_url: string | null;
+  external_url: string | null;
+  translations: Record<string, any> | null;
   valid_from: string;
   valid_until: string | null;
   status: string;
@@ -63,9 +66,8 @@ export const useCreatePromotion = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['promotions'] });
-      await queryClient.refetchQueries({ queryKey: ['promotions'] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['promotions'] });
       toast.success('Promotion created successfully');
     },
     onError: (error) => {
@@ -89,13 +91,23 @@ export const useUpdatePromotion = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['promotions'] });
-      await queryClient.refetchQueries({ queryKey: ['promotions'] });
-      toast.success('Promotion updated successfully');
+    onMutate: async ({ id, updates }) => {
+      await queryClient.cancelQueries({ queryKey: ['promotions'] });
+      const previous = queryClient.getQueryData<Promotion[]>(['promotions']);
+      queryClient.setQueryData<Promotion[]>(['promotions'], old =>
+        old?.map(p => p.id === id ? { ...p, ...updates } as Promotion : p) ?? []
+      );
+      return { previous };
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      if (context?.previous) queryClient.setQueryData(['promotions'], context.previous);
       toast.error('Failed to update promotion: ' + error.message);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['promotions'] });
+    },
+    onSuccess: () => {
+      toast.success('Promotion updated successfully');
     },
   });
 };
@@ -112,13 +124,23 @@ export const useDeletePromotion = () => {
 
       if (error) throw error;
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['promotions'] });
-      await queryClient.refetchQueries({ queryKey: ['promotions'] });
-      toast.success('Promotion deleted successfully');
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['promotions'] });
+      const previous = queryClient.getQueryData<Promotion[]>(['promotions']);
+      queryClient.setQueryData<Promotion[]>(['promotions'], old =>
+        old?.filter(p => p.id !== id) ?? []
+      );
+      return { previous };
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      if (context?.previous) queryClient.setQueryData(['promotions'], context.previous);
       toast.error('Failed to delete promotion: ' + error.message);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['promotions'] });
+    },
+    onSuccess: () => {
+      toast.success('Promotion deleted successfully');
     },
   });
 };

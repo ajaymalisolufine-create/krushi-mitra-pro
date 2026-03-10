@@ -10,6 +10,8 @@ export interface News {
   category: string | null;
   image_url: string | null;
   external_url: string | null;
+  video_url: string | null;
+  translations: Record<string, any> | null;
   status: string;
   published_at: string;
   created_at: string;
@@ -64,9 +66,8 @@ export const useCreateNews = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['news'] });
-      await queryClient.refetchQueries({ queryKey: ['news'] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['news'] });
       toast.success('News published successfully');
     },
     onError: (error) => {
@@ -90,13 +91,23 @@ export const useUpdateNews = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['news'] });
-      await queryClient.refetchQueries({ queryKey: ['news'] });
-      toast.success('News updated successfully');
+    onMutate: async ({ id, updates }) => {
+      await queryClient.cancelQueries({ queryKey: ['news'] });
+      const previous = queryClient.getQueryData<News[]>(['news']);
+      queryClient.setQueryData<News[]>(['news'], old =>
+        old?.map(n => n.id === id ? { ...n, ...updates } as News : n) ?? []
+      );
+      return { previous };
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      if (context?.previous) queryClient.setQueryData(['news'], context.previous);
       toast.error('Failed to update news: ' + error.message);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['news'] });
+    },
+    onSuccess: () => {
+      toast.success('News updated successfully');
     },
   });
 };
@@ -113,13 +124,23 @@ export const useDeleteNews = () => {
 
       if (error) throw error;
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['news'] });
-      await queryClient.refetchQueries({ queryKey: ['news'] });
-      toast.success('News deleted successfully');
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['news'] });
+      const previous = queryClient.getQueryData<News[]>(['news']);
+      queryClient.setQueryData<News[]>(['news'], old =>
+        old?.filter(n => n.id !== id) ?? []
+      );
+      return { previous };
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      if (context?.previous) queryClient.setQueryData(['news'], context.previous);
       toast.error('Failed to delete news: ' + error.message);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['news'] });
+    },
+    onSuccess: () => {
+      toast.success('News deleted successfully');
     },
   });
 };

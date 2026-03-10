@@ -29,7 +29,6 @@ export const useDealers = () => {
         .from('dealers')
         .select('*')
         .order('created_at', { ascending: false });
-
       if (error) throw error;
       return data as Dealer[];
     },
@@ -45,38 +44,25 @@ export const useActiveDealers = () => {
         .select('*')
         .eq('status', 'active')
         .order('name', { ascending: true });
-
       if (error) throw error;
       return data as Dealer[];
     },
   });
 };
 
-// Get dealers by pincode - matches exact pincode or serving_pincodes array
 export const useDealersByPincode = (pincode: string | null) => {
   return useQuery({
     queryKey: ['dealers', 'pincode', pincode],
     queryFn: async () => {
       if (!pincode) {
-        // If no pincode, return all active dealers
-        const { data, error } = await supabase
-          .from('dealers')
-          .select('*')
-          .eq('status', 'active')
-          .order('name', { ascending: true });
-
+        const { data, error } = await supabase.from('dealers').select('*').eq('status', 'active').order('name', { ascending: true });
         if (error) throw error;
         return data as Dealer[];
       }
-
-      // Get dealers that match the pincode or have it in serving_pincodes
       const { data, error } = await supabase
-        .from('dealers')
-        .select('*')
-        .eq('status', 'active')
+        .from('dealers').select('*').eq('status', 'active')
         .or(`pincode.eq.${pincode},serving_pincodes.cs.{${pincode}}`)
         .order('name', { ascending: true });
-
       if (error) throw error;
       return data as Dealer[];
     },
@@ -86,74 +72,63 @@ export const useDealersByPincode = (pincode: string | null) => {
 
 export const useCreateDealer = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async (dealer: DealerInsert) => {
-      const { data, error } = await supabase
-        .from('dealers')
-        .insert(dealer)
-        .select()
-        .single();
-
+      const { data, error } = await supabase.from('dealers').insert(dealer).select().single();
       if (error) throw error;
       return data;
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['dealers'] });
-      await queryClient.refetchQueries({ queryKey: ['dealers'] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dealers'] });
       toast.success('Dealer added successfully');
     },
-    onError: (error) => {
-      toast.error('Failed to add dealer: ' + error.message);
-    },
+    onError: (error) => toast.error('Failed to add dealer: ' + error.message),
   });
 };
 
 export const useUpdateDealer = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: DealerUpdate }) => {
-      const { data, error } = await supabase
-        .from('dealers')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
+      const { data, error } = await supabase.from('dealers').update(updates).eq('id', id).select().single();
       if (error) throw error;
       return data;
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['dealers'] });
-      await queryClient.refetchQueries({ queryKey: ['dealers'] });
-      toast.success('Dealer updated successfully');
+    onMutate: async ({ id, updates }) => {
+      await queryClient.cancelQueries({ queryKey: ['dealers'] });
+      const previous = queryClient.getQueryData<Dealer[]>(['dealers']);
+      queryClient.setQueryData<Dealer[]>(['dealers'], old =>
+        old?.map(d => d.id === id ? { ...d, ...updates } as Dealer : d) ?? []
+      );
+      return { previous };
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      if (context?.previous) queryClient.setQueryData(['dealers'], context.previous);
       toast.error('Failed to update dealer: ' + error.message);
     },
+    onSettled: () => { queryClient.invalidateQueries({ queryKey: ['dealers'] }); },
+    onSuccess: () => { toast.success('Dealer updated successfully'); },
   });
 };
 
 export const useDeleteDealer = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('dealers')
-        .delete()
-        .eq('id', id);
-
+      const { error } = await supabase.from('dealers').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['dealers'] });
-      await queryClient.refetchQueries({ queryKey: ['dealers'] });
-      toast.success('Dealer deleted successfully');
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['dealers'] });
+      const previous = queryClient.getQueryData<Dealer[]>(['dealers']);
+      queryClient.setQueryData<Dealer[]>(['dealers'], old => old?.filter(d => d.id !== id) ?? []);
+      return { previous };
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      if (context?.previous) queryClient.setQueryData(['dealers'], context.previous);
       toast.error('Failed to delete dealer: ' + error.message);
     },
+    onSettled: () => { queryClient.invalidateQueries({ queryKey: ['dealers'] }); },
+    onSuccess: () => { toast.success('Dealer deleted successfully'); },
   });
 };

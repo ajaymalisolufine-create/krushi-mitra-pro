@@ -18,6 +18,7 @@ export interface Product {
   available_states: string[] | null;
   is_trending: boolean;
   is_best_seller: boolean;
+  translations: Record<string, any> | null;
   created_at: string;
   updated_at: string;
 }
@@ -54,9 +55,8 @@ export const useCreateProduct = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['products'] });
-      await queryClient.refetchQueries({ queryKey: ['products'] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
       toast.success('Product created successfully');
     },
     onError: (error) => {
@@ -80,13 +80,23 @@ export const useUpdateProduct = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['products'] });
-      await queryClient.refetchQueries({ queryKey: ['products'] });
-      toast.success('Product updated successfully');
+    onMutate: async ({ id, updates }) => {
+      await queryClient.cancelQueries({ queryKey: ['products'] });
+      const previous = queryClient.getQueryData<Product[]>(['products']);
+      queryClient.setQueryData<Product[]>(['products'], old =>
+        old?.map(p => p.id === id ? { ...p, ...updates } as Product : p) ?? []
+      );
+      return { previous };
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      if (context?.previous) queryClient.setQueryData(['products'], context.previous);
       toast.error('Failed to update product: ' + error.message);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+    onSuccess: () => {
+      toast.success('Product updated successfully');
     },
   });
 };
@@ -103,13 +113,23 @@ export const useDeleteProduct = () => {
 
       if (error) throw error;
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['products'] });
-      await queryClient.refetchQueries({ queryKey: ['products'] });
-      toast.success('Product deleted successfully');
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['products'] });
+      const previous = queryClient.getQueryData<Product[]>(['products']);
+      queryClient.setQueryData<Product[]>(['products'], old =>
+        old?.filter(p => p.id !== id) ?? []
+      );
+      return { previous };
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      if (context?.previous) queryClient.setQueryData(['products'], context.previous);
       toast.error('Failed to delete product: ' + error.message);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+    onSuccess: () => {
+      toast.success('Product deleted successfully');
     },
   });
 };

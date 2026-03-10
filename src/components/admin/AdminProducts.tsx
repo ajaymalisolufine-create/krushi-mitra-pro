@@ -114,8 +114,10 @@ export const AdminProducts = () => {
   const clearImage = () => setFormData(prev => ({ ...prev, image_url: '' }));
 
   const handleAIGenerate = async () => {
+    const benefitsList = formData.benefits.split('\n').map(b => b.trim()).filter(Boolean);
     const translations = await generateTranslations(formData.name, 'product', {
       context: formData.description || formData.tagline || undefined,
+      benefits: benefitsList.length > 0 ? benefitsList : undefined,
     });
     if (translations) {
       setFormData(prev => ({
@@ -124,6 +126,7 @@ export const AdminProducts = () => {
         translations,
       }));
     }
+    // Reset generating state after completion
   };
 
   const handleSubmit = (e: React.FormEvent) => {
