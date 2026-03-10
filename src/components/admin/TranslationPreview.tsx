@@ -2,8 +2,8 @@ import { Sparkles, Edit2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface TranslationPreviewProps {
-  translations: Record<string, { title: string; message: string }>;
-  onUpdate?: (translations: Record<string, { title: string; message: string }>) => void;
+  translations: Record<string, { title: string; message: string; benefits?: string[] }>;
+  onUpdate?: (translations: Record<string, { title: string; message: string; benefits?: string[] }>) => void;
 }
 
 const LANG_LABELS: Record<string, string> = {
@@ -69,6 +69,14 @@ export const TranslationPreview = ({ translations, onUpdate }: TranslationPrevie
               <>
                 <p className="text-sm font-semibold">{t.title}</p>
                 <p className="text-xs text-muted-foreground">{t.message}</p>
+                {t.benefits && t.benefits.length > 0 && (
+                  <div className="mt-1">
+                    <p className="text-xs font-medium text-muted-foreground mb-0.5">Benefits:</p>
+                    <ul className="text-xs text-muted-foreground list-disc list-inside space-y-0.5">
+                      {t.benefits.map((b, i) => <li key={i}>{b}</li>)}
+                    </ul>
+                  </div>
+                )}
               </>
             )}
           </div>
