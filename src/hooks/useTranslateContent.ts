@@ -64,8 +64,8 @@ export const useTranslateContent = () => {
     }
 
     toast.error(lastError?.message || 'Failed to generate translations');
+    setIsGenerating(false);
     return null;
-    // finally block removed to avoid premature state reset during retries
   };
 
   return { generateTranslations, isGenerating, setIsGenerating };
