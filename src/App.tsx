@@ -22,10 +22,14 @@ import { PopupNotification } from "./components/PopupNotification";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 30,
+      staleTime: 1000 * 10,
       refetchOnWindowFocus: true,
       refetchOnMount: true,
       refetchOnReconnect: true,
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+    },
+    mutations: {
       retry: 1,
     },
   },
