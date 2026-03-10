@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { title, category, context, contentType } = await req.json();
+    const { title, category, context, contentType, benefits } = await req.json();
 
     if (!title) {
       return new Response(
@@ -44,6 +44,14 @@ serve(async (req) => {
     const typeDesc = contentTypeContext[type] || contentTypeContext.notification;
     const catDesc = categoryContext[category] || "";
 
+    // Build benefits section for products
+    let benefitsSection = "";
+    if (type === "product" && benefits && Array.isArray(benefits) && benefits.length > 0) {
+      benefitsSection = `\nProduct Benefits (translate these too):\n${benefits.map((b: string, i: number) => `${i + 1}. ${b}`).join("\n")}`;
+    }
+
+    const hasBenefits = benefitsSection.length > 0;
+
     const systemPrompt = `You are an expert agricultural marketing copywriter for Indian farmers. You write in a professional, trust-building, and conversion-focused tone — similar to top agricultural brands and marketplaces.
 
 Rules:
@@ -58,10 +66,12 @@ Rules:
 
 You must respond with a JSON object containing translations in 3 languages with this exact structure:
 {
-  "en": { "title": "...", "message": "..." },
-  "mr": { "title": "...", "message": "..." },
-  "hi": { "title": "...", "message": "..." }
+  "en": { "title": "...", "message": "..."${hasBenefits ? ', "benefits": ["...", "..."]' : ""} },
+  "mr": { "title": "...", "message": "..."${hasBenefits ? ', "benefits": ["...", "..."]' : ""} },
+  "hi": { "title": "...", "message": "..."${hasBenefits ? ', "benefits": ["...", "..."]' : ""} }
 }
+
+${hasBenefits ? "IMPORTANT: The benefits array must have the SAME number of items as the input benefits, translated in the same order." : ""}
 
 The translations must preserve the EXACT same meaning and intent across all languages. The Marathi and Hindi should feel natural, not machine-translated.`;
 
@@ -69,9 +79,9 @@ The translations must preserve the EXACT same meaning and intent across all lang
 
 Title/Topic: "${title}"
 ${category ? `Category: ${category} (${catDesc})` : ""}
-${context ? `Additional context/description: ${context}` : ""}
+${context ? `Additional context/description: ${context}` : ""}${benefitsSection}
 
-Create a compelling title and descriptive message for each language (English, Marathi, Hindi). The message should be 2-3 sentences that clearly explain the value to farmers and encourage action.`;
+Create a compelling title and descriptive message for each language (English, Marathi, Hindi). The message should be 2-3 sentences that clearly explain the value to farmers and encourage action.${hasBenefits ? " Also translate each benefit point." : ""}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -120,8 +130,19 @@ Create a compelling title and descriptive message for each language (English, Ma
       const jsonStr = jsonMatch ? jsonMatch[1].trim() : content.trim();
       parsed = JSON.parse(jsonStr);
     } catch {
-      console.error("Failed to parse AI response:", content);
-      throw new Error("Failed to parse generated content");
+      // Try to extract JSON object directly
+      try {
+        const objMatch = content.match(/\{[\s\S]*\}/);
+        if (objMatch) {
+          parsed = JSON.parse(objMatch[0]);
+        } else {
+          console.error("Failed to parse AI response:", content);
+          throw new Error("Failed to parse generated content");
+        }
+      } catch {
+        console.error("Failed to parse AI response:", content);
+        throw new Error("Failed to parse generated content");
+      }
     }
 
     return new Response(

@@ -6,13 +6,20 @@ interface Translations {
   [lang: string]: { title: string; message: string };
 }
 
+interface TranslateOptions {
+  category?: string;
+  context?: string;
+  benefits?: string[];
+  retries?: number;
+}
+
 export const useTranslateContent = () => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const generateTranslations = async (
     title: string,
     contentType: 'notification' | 'product' | 'news' | 'promotion',
-    options?: { category?: string; context?: string }
+    options?: TranslateOptions
   ): Promise<Translations | null> => {
     if (!title.trim()) {
       toast.error('Enter a title first');
@@ -20,30 +27,48 @@ export const useTranslateContent = () => {
     }
 
     setIsGenerating(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-notification-content', {
-        body: {
+    const maxRetries = options?.retries ?? 2;
+    let lastError: any = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const body: any = {
           title,
           contentType,
           category: options?.category,
           context: options?.context,
-        },
-      });
+        };
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+        // Include benefits for product translations
+        if (contentType === 'product' && options?.benefits && options.benefits.length > 0) {
+          body.benefits = options.benefits;
+        }
 
-      toast.success('AI translations generated!');
-      return data.translations as Translations;
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to generate translations');
-      return null;
-    } finally {
-      setIsGenerating(false);
+        const { data, error } = await supabase.functions.invoke('generate-notification-content', {
+          body,
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        toast.success('AI translations generated!');
+        return data.translations as Translations;
+      } catch (err: any) {
+        lastError = err;
+        if (attempt < maxRetries && !err.message?.includes('Rate limit') && !err.message?.includes('credits')) {
+          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+          continue;
+        }
+        break;
+      }
     }
+
+    toast.error(lastError?.message || 'Failed to generate translations');
+    return null;
+    // finally block removed to avoid premature state reset during retries
   };
 
-  return { generateTranslations, isGenerating };
+  return { generateTranslations, isGenerating, setIsGenerating };
 };
 
 // Helper to get translated text from a translations JSONB object
