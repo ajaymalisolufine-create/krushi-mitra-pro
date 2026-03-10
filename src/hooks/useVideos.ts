@@ -28,7 +28,6 @@ export const useVideos = () => {
         .from('videos')
         .select('*')
         .order('created_at', { ascending: false });
-
       if (error) throw error;
       return data as Video[];
     },
@@ -44,7 +43,6 @@ export const useActiveVideos = () => {
         .select('*')
         .eq('status', 'active')
         .order('created_at', { ascending: false });
-
       if (error) throw error;
       return data as Video[];
     },
@@ -53,74 +51,63 @@ export const useActiveVideos = () => {
 
 export const useCreateVideo = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async (video: VideoInsert) => {
-      const { data, error } = await supabase
-        .from('videos')
-        .insert(video)
-        .select()
-        .single();
-
+      const { data, error } = await supabase.from('videos').insert(video).select().single();
       if (error) throw error;
       return data;
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['videos'] });
-      await queryClient.refetchQueries({ queryKey: ['videos'] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['videos'] });
       toast.success('Video added successfully');
     },
-    onError: (error) => {
-      toast.error('Failed to add video: ' + error.message);
-    },
+    onError: (error) => toast.error('Failed to add video: ' + error.message),
   });
 };
 
 export const useUpdateVideo = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: VideoUpdate }) => {
-      const { data, error } = await supabase
-        .from('videos')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
+      const { data, error } = await supabase.from('videos').update(updates).eq('id', id).select().single();
       if (error) throw error;
       return data;
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['videos'] });
-      await queryClient.refetchQueries({ queryKey: ['videos'] });
-      toast.success('Video updated successfully');
+    onMutate: async ({ id, updates }) => {
+      await queryClient.cancelQueries({ queryKey: ['videos'] });
+      const previous = queryClient.getQueryData<Video[]>(['videos']);
+      queryClient.setQueryData<Video[]>(['videos'], old =>
+        old?.map(v => v.id === id ? { ...v, ...updates } as Video : v) ?? []
+      );
+      return { previous };
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      if (context?.previous) queryClient.setQueryData(['videos'], context.previous);
       toast.error('Failed to update video: ' + error.message);
     },
+    onSettled: () => { queryClient.invalidateQueries({ queryKey: ['videos'] }); },
+    onSuccess: () => { toast.success('Video updated successfully'); },
   });
 };
 
 export const useDeleteVideo = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('videos')
-        .delete()
-        .eq('id', id);
-
+      const { error } = await supabase.from('videos').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['videos'] });
-      await queryClient.refetchQueries({ queryKey: ['videos'] });
-      toast.success('Video deleted successfully');
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['videos'] });
+      const previous = queryClient.getQueryData<Video[]>(['videos']);
+      queryClient.setQueryData<Video[]>(['videos'], old => old?.filter(v => v.id !== id) ?? []);
+      return { previous };
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      if (context?.previous) queryClient.setQueryData(['videos'], context.previous);
       toast.error('Failed to delete video: ' + error.message);
     },
+    onSettled: () => { queryClient.invalidateQueries({ queryKey: ['videos'] }); },
+    onSuccess: () => { toast.success('Video deleted successfully'); },
   });
 };
