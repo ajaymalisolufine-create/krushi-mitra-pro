@@ -12,8 +12,14 @@ const translations = {
 
 const extractYoutubeId = (url: string | null): string | null => {
   if (!url) return null;
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([a-zA-Z0-9_-]{11})/);
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=))([a-zA-Z0-9_-]{11})/);
   return match ? match[1] : null;
+};
+
+const getYoutubeWatchUrl = (videoId: string) => `https://www.youtube.com/watch?v=${videoId}`;
+
+const isInIframe = () => {
+  try { return window.self !== window.top; } catch { return true; }
 };
 
 export const VideosSection = () => {
@@ -89,7 +95,15 @@ export const VideosSection = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              onClick={() => youtubeId && setPlayingVideo(youtubeId)}
+              onClick={() => {
+                if (youtubeId) {
+                  if (isInIframe()) {
+                    window.open(getYoutubeWatchUrl(youtubeId), '_blank');
+                  } else {
+                    setPlayingVideo(youtubeId);
+                  }
+                }
+              }}
               className="bg-card rounded-2xl overflow-hidden shadow-card border border-border/50 hover:shadow-card-hover transition-all cursor-pointer group"
             >
               <div className="relative aspect-video overflow-hidden">
