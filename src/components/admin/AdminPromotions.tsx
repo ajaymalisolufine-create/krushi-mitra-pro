@@ -15,6 +15,7 @@ export const AdminPromotions = () => {
   const { uploadImage, isUploading } = useImageUpload();
   const { generateTranslations, isGenerating } = useTranslateContent();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isSaving = createPromotion.isPending || updatePromotion.isPending;
 
   const [showModal, setShowModal] = useState(false);
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null);
@@ -137,7 +138,7 @@ export const AdminPromotions = () => {
         {promotions.map((promo, index) => (
           <motion.div key={promo.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}
             className="bg-card rounded-2xl overflow-hidden shadow-card border border-border/50">
-            {promo.image_url && <img src={promo.image_url} alt={promo.title} className="w-full h-32 object-cover" />}
+            {promo.image_url && <img src={promo.image_url} alt={promo.title} className="w-full h-32 object-cover" loading="lazy" decoding="async" />}
             <div className="p-5">
               <div className="flex items-start justify-between mb-3">
                 <div className="w-12 h-12 rounded-xl bg-gradient-accent flex items-center justify-center">
@@ -192,7 +193,7 @@ export const AdminPromotions = () => {
                   className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary" rows={3} placeholder="Promotion description..." />
               </div>
 
-              <button type="button" onClick={handleAIGenerate} disabled={isGenerating || !formData.title.trim()}
+              <button type="button" onClick={handleAIGenerate} disabled={isGenerating || isSaving || !formData.title.trim()}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary font-medium transition-colors disabled:opacity-50">
                 {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating translations...</> : <><Sparkles className="w-4 h-4" /> AI Translate (MR/HI/EN)</>}
               </button>
@@ -205,7 +206,7 @@ export const AdminPromotions = () => {
                 <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleImageUpload} className="hidden" />
                 {formData.image_url ? (
                   <div className="relative inline-block w-full">
-                    <img src={formData.image_url} alt="Preview" className="w-full h-32 object-cover rounded-xl border border-border" />
+                    <img src={formData.image_url} alt="Preview" className="w-full h-32 object-cover rounded-xl border border-border" loading="lazy" decoding="async" />
                     <button type="button" onClick={() => setFormData(prev => ({ ...prev, image_url: '' }))} className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-white rounded-full flex items-center justify-center">
                       <X className="w-4 h-4" />
                     </button>
@@ -262,10 +263,10 @@ export const AdminPromotions = () => {
 
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-border hover:bg-muted transition-colors">Cancel</button>
-                <button type="submit" disabled={createPromotion.isPending || updatePromotion.isPending}
+                <button type="submit" disabled={isSaving || isUploading}
                   className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                  {(createPromotion.isPending || updatePromotion.isPending) && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {editingPromotion ? 'Update' : 'Create'}
+                  {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {isSaving ? 'Saving...' : editingPromotion ? 'Update' : 'Create'}
                 </button>
               </div>
             </form>

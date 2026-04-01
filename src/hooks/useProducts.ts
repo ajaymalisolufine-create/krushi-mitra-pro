@@ -1,6 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import {
+  LIST_QUERY_OPTIONS,
+  createOptimisticId,
+  mergeItemById,
+  prependItem,
+  removeItemById,
+  replaceItemById,
+} from './query-cache';
 
 export interface Product {
   id: string;
@@ -26,18 +34,22 @@ export interface Product {
 export type ProductInsert = Omit<Product, 'id' | 'created_at' | 'updated_at'>;
 export type ProductUpdate = Partial<ProductInsert>;
 
+const PRODUCTS_QUERY_KEY = ['products'] as const;
+const PRODUCT_FIELDS = 'id,name,tagline,description,category,crops,dosage,mrp,image_url,icon,status,benefits,available_states,is_trending,is_best_seller,translations,created_at,updated_at';
+
 export const useProducts = () => {
   return useQuery({
-    queryKey: ['products'],
+    queryKey: PRODUCTS_QUERY_KEY,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select(PRODUCT_FIELDS)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data as Product[];
     },
+    ...LIST_QUERY_OPTIONS,
   });
 };
 
@@ -49,18 +61,38 @@ export const useCreateProduct = () => {
       const { data, error } = await supabase
         .from('products')
         .insert(product)
-        .select()
+        .select(PRODUCT_FIELDS)
         .single();
 
       if (error) throw error;
-      return data;
+      return data as Product;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast.success('Product created successfully');
+    onMutate: async (product) => {
+      await queryClient.cancelQueries({ queryKey: PRODUCTS_QUERY_KEY });
+      const previous = queryClient.getQueryData<Product[]>(PRODUCTS_QUERY_KEY);
+      const optimisticId = createOptimisticId();
+      const now = new Date().toISOString();
+
+      queryClient.setQueryData<Product[]>(PRODUCTS_QUERY_KEY, (old) =>
+        prependItem(old, {
+          ...product,
+          id: optimisticId,
+          created_at: now,
+          updated_at: now,
+        }),
+      );
+
+      return { previous, optimisticId };
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      if (context?.previous) queryClient.setQueryData(PRODUCTS_QUERY_KEY, context.previous);
       toast.error('Failed to create product: ' + error.message);
+    },
+    onSuccess: (createdProduct, _, context) => {
+      queryClient.setQueryData<Product[]>(PRODUCTS_QUERY_KEY, (old) =>
+        replaceItemById(old, context?.optimisticId ?? createdProduct.id, createdProduct),
+      );
+      toast.success('Product created successfully');
     },
   });
 };
@@ -74,28 +106,28 @@ export const useUpdateProduct = () => {
         .from('products')
         .update(updates)
         .eq('id', id)
-        .select()
+        .select(PRODUCT_FIELDS)
         .single();
 
       if (error) throw error;
-      return data;
+      return data as Product;
     },
     onMutate: async ({ id, updates }) => {
-      await queryClient.cancelQueries({ queryKey: ['products'] });
-      const previous = queryClient.getQueryData<Product[]>(['products']);
-      queryClient.setQueryData<Product[]>(['products'], old =>
-        old?.map(p => p.id === id ? { ...p, ...updates } as Product : p) ?? []
+      await queryClient.cancelQueries({ queryKey: PRODUCTS_QUERY_KEY });
+      const previous = queryClient.getQueryData<Product[]>(PRODUCTS_QUERY_KEY);
+      queryClient.setQueryData<Product[]>(PRODUCTS_QUERY_KEY, (old) =>
+        mergeItemById(old, id, { ...updates, updated_at: new Date().toISOString() } as Partial<Product>),
       );
       return { previous };
     },
     onError: (error, _, context) => {
-      if (context?.previous) queryClient.setQueryData(['products'], context.previous);
+      if (context?.previous) queryClient.setQueryData(PRODUCTS_QUERY_KEY, context.previous);
       toast.error('Failed to update product: ' + error.message);
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-    },
-    onSuccess: () => {
+    onSuccess: (updatedProduct) => {
+      queryClient.setQueryData<Product[]>(PRODUCTS_QUERY_KEY, (old) =>
+        replaceItemById(old, updatedProduct.id, updatedProduct),
+      );
       toast.success('Product updated successfully');
     },
   });
@@ -114,19 +146,14 @@ export const useDeleteProduct = () => {
       if (error) throw error;
     },
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['products'] });
-      const previous = queryClient.getQueryData<Product[]>(['products']);
-      queryClient.setQueryData<Product[]>(['products'], old =>
-        old?.filter(p => p.id !== id) ?? []
-      );
+      await queryClient.cancelQueries({ queryKey: PRODUCTS_QUERY_KEY });
+      const previous = queryClient.getQueryData<Product[]>(PRODUCTS_QUERY_KEY);
+      queryClient.setQueryData<Product[]>(PRODUCTS_QUERY_KEY, (old) => removeItemById(old, id));
       return { previous };
     },
     onError: (error, _, context) => {
-      if (context?.previous) queryClient.setQueryData(['products'], context.previous);
+      if (context?.previous) queryClient.setQueryData(PRODUCTS_QUERY_KEY, context.previous);
       toast.error('Failed to delete product: ' + error.message);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
     },
     onSuccess: () => {
       toast.success('Product deleted successfully');

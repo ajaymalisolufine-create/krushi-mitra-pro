@@ -19,6 +19,7 @@ export const AdminNotifications = () => {
   const updateNotification = useUpdateNotification();
   const deleteNotification = useDeleteNotification();
   const { generateTranslations, isGenerating } = useTranslateContent();
+  const isSaving = createNotification.isPending || updateNotification.isPending;
 
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -213,7 +214,7 @@ export const AdminNotifications = () => {
                 </div>
               </div>
 
-              <button type="button" onClick={handleAIGenerate} disabled={isGenerating || !formData.title.trim()}
+              <button type="button" onClick={handleAIGenerate} disabled={isGenerating || isSaving || !formData.title.trim()}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary font-medium transition-colors disabled:opacity-50">
                 {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</> : <><Sparkles className="w-4 h-4" /> AI Generate + Translate (MR/HI/EN)</>}
               </button>
@@ -276,13 +277,13 @@ export const AdminNotifications = () => {
               </div>
 
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-border hover:bg-muted transition-colors">Cancel</button>
-                <button type="button" onClick={e => handleSubmit(e, true)} disabled={createNotification.isPending}
+                <button type="button" onClick={() => setShowModal(false)} disabled={isSaving} className="flex-1 px-4 py-2.5 rounded-xl border border-border hover:bg-muted transition-colors disabled:opacity-50">Cancel</button>
+                <button type="button" onClick={e => handleSubmit(e, true)} disabled={isSaving}
                   className="px-4 py-2.5 rounded-xl bg-muted hover:bg-muted/80 transition-colors">Save Draft</button>
-                <button type="button" onClick={e => handleSubmit(e, false)} disabled={createNotification.isPending}
+                <button type="button" onClick={e => handleSubmit(e, false)} disabled={isSaving}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50">
-                  {createNotification.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <Send className="w-4 h-4" /> Schedule
+                  {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {isSaving ? 'Saving...' : 'Schedule'}
                 </button>
               </div>
             </form>

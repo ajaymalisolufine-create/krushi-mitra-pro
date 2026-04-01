@@ -1,6 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import {
+  LIST_QUERY_OPTIONS,
+  createOptimisticId,
+  invalidateQueryGroups,
+  mergeItemById,
+  prependItem,
+  removeItemById,
+  replaceItemById,
+} from './query-cache';
 
 export interface Dealer {
   id: string;
@@ -21,52 +30,60 @@ export interface Dealer {
 export type DealerInsert = Partial<Omit<Dealer, 'id' | 'created_at' | 'updated_at'>> & { name: string; status: string };
 export type DealerUpdate = Partial<Omit<Dealer, 'id' | 'created_at' | 'updated_at'>>;
 
+const DEALERS_QUERY_KEY = ['dealers'] as const;
+const ACTIVE_DEALERS_QUERY_KEY = ['dealers', 'active'] as const;
+const DEALERS_BY_PINCODE_QUERY_KEY = ['dealers', 'pincode'] as const;
+const DEALER_FIELDS = 'id,name,address,city,phone,email,lat,lng,pincode,serving_pincodes,status,created_at,updated_at';
+
 export const useDealers = () => {
   return useQuery({
-    queryKey: ['dealers'],
+    queryKey: DEALERS_QUERY_KEY,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('dealers')
-        .select('*')
+        .select(DEALER_FIELDS)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data as Dealer[];
     },
+    ...LIST_QUERY_OPTIONS,
   });
 };
 
 export const useActiveDealers = () => {
   return useQuery({
-    queryKey: ['dealers', 'active'],
+    queryKey: ACTIVE_DEALERS_QUERY_KEY,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('dealers')
-        .select('*')
+        .select(DEALER_FIELDS)
         .eq('status', 'active')
         .order('name', { ascending: true });
       if (error) throw error;
       return data as Dealer[];
     },
+    ...LIST_QUERY_OPTIONS,
   });
 };
 
 export const useDealersByPincode = (pincode: string | null) => {
   return useQuery({
-    queryKey: ['dealers', 'pincode', pincode],
+    queryKey: [...DEALERS_BY_PINCODE_QUERY_KEY, pincode],
     queryFn: async () => {
       if (!pincode) {
-        const { data, error } = await supabase.from('dealers').select('*').eq('status', 'active').order('name', { ascending: true });
+        const { data, error } = await supabase.from('dealers').select(DEALER_FIELDS).eq('status', 'active').order('name', { ascending: true });
         if (error) throw error;
         return data as Dealer[];
       }
       const { data, error } = await supabase
-        .from('dealers').select('*').eq('status', 'active')
+        .from('dealers').select(DEALER_FIELDS).eq('status', 'active')
         .or(`pincode.eq.${pincode},serving_pincodes.cs.{${pincode}}`)
         .order('name', { ascending: true });
       if (error) throw error;
       return data as Dealer[];
     },
     enabled: true,
+    ...LIST_QUERY_OPTIONS,
   });
 };
 
@@ -74,15 +91,47 @@ export const useCreateDealer = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (dealer: DealerInsert) => {
-      const { data, error } = await supabase.from('dealers').insert(dealer).select().single();
+      const { data, error } = await supabase.from('dealers').insert(dealer).select(DEALER_FIELDS).single();
       if (error) throw error;
-      return data;
+      return data as Dealer;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dealers'] });
+    onMutate: async (dealer) => {
+      await queryClient.cancelQueries({ queryKey: DEALERS_QUERY_KEY });
+      const previous = queryClient.getQueryData<Dealer[]>(DEALERS_QUERY_KEY);
+      const optimisticId = createOptimisticId();
+      const now = new Date().toISOString();
+
+      queryClient.setQueryData<Dealer[]>(DEALERS_QUERY_KEY, (old) =>
+        prependItem(old, {
+          id: optimisticId,
+          created_at: now,
+          updated_at: now,
+          name: dealer.name,
+          address: dealer.address ?? null,
+          city: dealer.city ?? null,
+          phone: dealer.phone ?? null,
+          email: dealer.email ?? null,
+          lat: dealer.lat ?? null,
+          lng: dealer.lng ?? null,
+          pincode: dealer.pincode ?? null,
+          serving_pincodes: dealer.serving_pincodes ?? null,
+          status: dealer.status,
+        }),
+      );
+
+      return { previous, optimisticId };
+    },
+    onError: (error, _, context) => {
+      if (context?.previous) queryClient.setQueryData(DEALERS_QUERY_KEY, context.previous);
+      toast.error('Failed to add dealer: ' + error.message);
+    },
+    onSuccess: (createdDealer, _, context) => {
+      queryClient.setQueryData<Dealer[]>(DEALERS_QUERY_KEY, (old) =>
+        replaceItemById(old, context?.optimisticId ?? createdDealer.id, createdDealer),
+      );
+      void invalidateQueryGroups(queryClient, [ACTIVE_DEALERS_QUERY_KEY, DEALERS_BY_PINCODE_QUERY_KEY]);
       toast.success('Dealer added successfully');
     },
-    onError: (error) => toast.error('Failed to add dealer: ' + error.message),
   });
 };
 
@@ -90,24 +139,29 @@ export const useUpdateDealer = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: DealerUpdate }) => {
-      const { data, error } = await supabase.from('dealers').update(updates).eq('id', id).select().single();
+      const { data, error } = await supabase.from('dealers').update(updates).eq('id', id).select(DEALER_FIELDS).single();
       if (error) throw error;
-      return data;
+      return data as Dealer;
     },
     onMutate: async ({ id, updates }) => {
-      await queryClient.cancelQueries({ queryKey: ['dealers'] });
-      const previous = queryClient.getQueryData<Dealer[]>(['dealers']);
-      queryClient.setQueryData<Dealer[]>(['dealers'], old =>
-        old?.map(d => d.id === id ? { ...d, ...updates } as Dealer : d) ?? []
+      await queryClient.cancelQueries({ queryKey: DEALERS_QUERY_KEY });
+      const previous = queryClient.getQueryData<Dealer[]>(DEALERS_QUERY_KEY);
+      queryClient.setQueryData<Dealer[]>(DEALERS_QUERY_KEY, (old) =>
+        mergeItemById(old, id, { ...updates, updated_at: new Date().toISOString() } as Partial<Dealer>),
       );
       return { previous };
     },
     onError: (error, _, context) => {
-      if (context?.previous) queryClient.setQueryData(['dealers'], context.previous);
+      if (context?.previous) queryClient.setQueryData(DEALERS_QUERY_KEY, context.previous);
       toast.error('Failed to update dealer: ' + error.message);
     },
-    onSettled: () => { queryClient.invalidateQueries({ queryKey: ['dealers'] }); },
-    onSuccess: () => { toast.success('Dealer updated successfully'); },
+    onSuccess: (updatedDealer) => {
+      queryClient.setQueryData<Dealer[]>(DEALERS_QUERY_KEY, (old) =>
+        replaceItemById(old, updatedDealer.id, updatedDealer),
+      );
+      void invalidateQueryGroups(queryClient, [ACTIVE_DEALERS_QUERY_KEY, DEALERS_BY_PINCODE_QUERY_KEY]);
+      toast.success('Dealer updated successfully');
+    },
   });
 };
 
@@ -119,16 +173,18 @@ export const useDeleteDealer = () => {
       if (error) throw error;
     },
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['dealers'] });
-      const previous = queryClient.getQueryData<Dealer[]>(['dealers']);
-      queryClient.setQueryData<Dealer[]>(['dealers'], old => old?.filter(d => d.id !== id) ?? []);
+      await queryClient.cancelQueries({ queryKey: DEALERS_QUERY_KEY });
+      const previous = queryClient.getQueryData<Dealer[]>(DEALERS_QUERY_KEY);
+      queryClient.setQueryData<Dealer[]>(DEALERS_QUERY_KEY, (old) => removeItemById(old, id));
       return { previous };
     },
     onError: (error, _, context) => {
-      if (context?.previous) queryClient.setQueryData(['dealers'], context.previous);
+      if (context?.previous) queryClient.setQueryData(DEALERS_QUERY_KEY, context.previous);
       toast.error('Failed to delete dealer: ' + error.message);
     },
-    onSettled: () => { queryClient.invalidateQueries({ queryKey: ['dealers'] }); },
-    onSuccess: () => { toast.success('Dealer deleted successfully'); },
+    onSuccess: () => {
+      void invalidateQueryGroups(queryClient, [ACTIVE_DEALERS_QUERY_KEY, DEALERS_BY_PINCODE_QUERY_KEY]);
+      toast.success('Dealer deleted successfully');
+    },
   });
 };

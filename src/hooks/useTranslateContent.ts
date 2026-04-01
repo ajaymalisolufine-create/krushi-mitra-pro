@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -16,10 +16,10 @@ interface TranslateOptions {
 export const useTranslateContent = () => {
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const generateTranslations = async (
+  const generateTranslations = useCallback(async (
     title: string,
     contentType: 'notification' | 'product' | 'news' | 'promotion',
-    options?: TranslateOptions
+    options?: TranslateOptions,
   ): Promise<Translations | null> => {
     if (!title.trim()) {
       toast.error('Enter a title first');
@@ -28,45 +28,52 @@ export const useTranslateContent = () => {
 
     setIsGenerating(true);
     const maxRetries = options?.retries ?? 2;
-    let lastError: any = null;
+    let lastError: Error | null = null;
 
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        const body: any = {
-          title,
-          contentType,
-          category: options?.category,
-          context: options?.context,
-        };
+    try {
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const body: Record<string, unknown> = {
+            title,
+            contentType,
+            category: options?.category,
+            context: options?.context,
+          };
 
-        // Include benefits for product translations
-        if (contentType === 'product' && options?.benefits && options.benefits.length > 0) {
-          body.benefits = options.benefits;
+          if (contentType === 'product' && options?.benefits?.length) {
+            body.benefits = options.benefits;
+          }
+
+          const { data, error } = await supabase.functions.invoke('generate-notification-content', {
+            body,
+          });
+
+          if (error) throw error;
+          if (data?.error) throw new Error(data.error);
+
+          toast.success('AI translations generated!');
+          return data.translations as Translations;
+        } catch (error) {
+          lastError = error instanceof Error ? error : new Error('Failed to generate translations');
+
+          if (
+            attempt < maxRetries &&
+            !/rate limit|credits/i.test(lastError.message)
+          ) {
+            await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+            continue;
+          }
+
+          break;
         }
-
-        const { data, error } = await supabase.functions.invoke('generate-notification-content', {
-          body,
-        });
-
-        if (error) throw error;
-        if (data?.error) throw new Error(data.error);
-
-        toast.success('AI translations generated!');
-        return data.translations as Translations;
-      } catch (err: any) {
-        lastError = err;
-        if (attempt < maxRetries && !err.message?.includes('Rate limit') && !err.message?.includes('credits')) {
-          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-          continue;
-        }
-        break;
       }
-    }
 
-    toast.error(lastError?.message || 'Failed to generate translations');
-    setIsGenerating(false);
-    return null;
-  };
+      toast.error(lastError?.message || 'Failed to generate translations');
+      return null;
+    } finally {
+      setIsGenerating(false);
+    }
+  }, []);
 
   return { generateTranslations, isGenerating, setIsGenerating };
 };
