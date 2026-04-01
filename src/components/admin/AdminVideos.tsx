@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Edit2, Trash2, PlayCircle, Eye, Link, Loader2 } from 'lucide-react';
 import { useVideos, useCreateVideo, useUpdateVideo, useDeleteVideo, type Video } from '@/hooks/useVideos';
+import { extractYouTubeId } from '@/lib/youtube';
 
 export const AdminVideos = () => {
   const { data: videos = [], isLoading } = useVideos();
   const createVideo = useCreateVideo();
   const updateVideo = useUpdateVideo();
   const deleteVideo = useDeleteVideo();
+  const isSaving = createVideo.isPending || updateVideo.isPending;
 
   const [showModal, setShowModal] = useState(false);
   const [editingVideo, setEditingVideo] = useState<Video | null>(null);
@@ -79,11 +81,8 @@ export const AdminVideos = () => {
 
   // Generate thumbnail from YouTube URL
   const getYouTubeThumbnail = (url: string) => {
-    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
-    if (match) {
-      return `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg`;
-    }
-    return 'https://images.unsplash.com/photo-1560493676-04071c5f467b?w=300&h=170&fit=crop';
+    const youtubeId = extractYouTubeId(url);
+    return youtubeId ? `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg` : '/placeholder.svg';
   };
 
   if (isLoading) {
@@ -124,9 +123,12 @@ export const AdminVideos = () => {
             {/* Thumbnail */}
             <div className="relative aspect-video">
               <img
-                src={video.thumbnail_url || (video.youtube_url ? getYouTubeThumbnail(video.youtube_url) : 'https://images.unsplash.com/photo-1560493676-04071c5f467b?w=300&h=170&fit=crop')}
+                src={video.thumbnail_url || (video.youtube_url ? getYouTubeThumbnail(video.youtube_url) : '/placeholder.svg')}
                 alt={video.title}
                 className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
+                onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }}
               />
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                 <PlayCircle className="w-12 h-12 text-white" />
@@ -258,13 +260,13 @@ export const AdminVideos = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={createVideo.isPending || updateVideo.isPending}
+                  disabled={isSaving}
                   className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {(createVideo.isPending || updateVideo.isPending) && (
+                  {isSaving && (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   )}
-                  {editingVideo ? 'Update' : 'Add Video'}
+                  {isSaving ? 'Saving...' : editingVideo ? 'Update' : 'Add Video'}
                 </button>
               </div>
             </form>

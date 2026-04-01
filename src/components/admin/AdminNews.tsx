@@ -15,6 +15,7 @@ export const AdminNews = () => {
   const { uploadImage, isUploading } = useImageUpload();
   const { generateTranslations, isGenerating } = useTranslateContent();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isSaving = createNews.isPending || updateNews.isPending;
 
   const [showModal, setShowModal] = useState(false);
   const [editingNews, setEditingNews] = useState<News | null>(null);
@@ -145,7 +146,7 @@ export const AdminNews = () => {
             className="bg-card rounded-2xl p-4 shadow-card border border-border/50">
             <div className="flex items-start gap-4">
               {item.image_url ? (
-                <img src={item.image_url} alt={item.title} className="w-12 h-12 rounded-xl object-cover shrink-0" />
+                <img src={item.image_url} alt={item.title} className="w-12 h-12 rounded-xl object-cover shrink-0" loading="lazy" decoding="async" />
               ) : (
                 <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center shrink-0">
                   <Newspaper className="w-6 h-6 text-muted-foreground" />
@@ -201,7 +202,7 @@ export const AdminNews = () => {
               </div>
 
               {/* AI Generate Button */}
-              <button type="button" onClick={handleAIGenerate} disabled={isGenerating || !formData.title.trim()}
+              <button type="button" onClick={handleAIGenerate} disabled={isGenerating || isSaving || !formData.title.trim()}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary font-medium transition-colors disabled:opacity-50">
                 {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating translations...</> : <><Sparkles className="w-4 h-4" /> AI Generate Translations (MR/HI/EN)</>}
               </button>
@@ -214,7 +215,7 @@ export const AdminNews = () => {
                 <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleImageUpload} className="hidden" />
                 {formData.image_url ? (
                   <div className="relative inline-block">
-                    <img src={formData.image_url} alt="Preview" className="w-full h-32 object-cover rounded-xl border border-border" />
+                    <img src={formData.image_url} alt="Preview" className="w-full h-32 object-cover rounded-xl border border-border" loading="lazy" decoding="async" />
                     <button type="button" onClick={() => setFormData(prev => ({ ...prev, image_url: '' }))} className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-white rounded-full flex items-center justify-center">
                       <X className="w-4 h-4" />
                     </button>
@@ -271,10 +272,10 @@ export const AdminNews = () => {
 
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-border hover:bg-muted transition-colors">Cancel</button>
-                <button type="submit" disabled={createNews.isPending || updateNews.isPending}
+                <button type="submit" disabled={isSaving || isUploading}
                   className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                  {(createNews.isPending || updateNews.isPending) && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {editingNews ? 'Update' : 'Publish'}
+                  {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {isSaving ? 'Saving...' : editingNews ? 'Update' : 'Publish'}
                 </button>
               </div>
             </form>

@@ -1,39 +1,49 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { AppProvider } from "@/contexts/AppContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import InstallApp from "./pages/InstallApp";
-import { AdminLayout } from "./components/admin/AdminLayout";
-import { AdminDashboard } from "./components/admin/AdminDashboard";
-import { AdminProducts } from "./components/admin/AdminProducts";
-import { AdminPromotions } from "./components/admin/AdminPromotions";
-import { AdminVideos } from "./components/admin/AdminVideos";
-import { AdminNews } from "./components/admin/AdminNews";
-import { AdminNotifications } from "./components/admin/AdminNotifications";
-import { AdminDealers } from "./components/admin/AdminDealers";
-import { AdminSettings } from "./components/admin/AdminSettings";
-import { AdminBanners } from "./components/admin/AdminBanners";
 import { PopupNotification } from "./components/PopupNotification";
+
+const AdminLayout = lazy(() => import("./components/admin/AdminLayout").then((module) => ({ default: module.AdminLayout })));
+const AdminDashboard = lazy(() => import("./components/admin/AdminDashboard").then((module) => ({ default: module.AdminDashboard })));
+const AdminProducts = lazy(() => import("./components/admin/AdminProducts").then((module) => ({ default: module.AdminProducts })));
+const AdminPromotions = lazy(() => import("./components/admin/AdminPromotions").then((module) => ({ default: module.AdminPromotions })));
+const AdminVideos = lazy(() => import("./components/admin/AdminVideos").then((module) => ({ default: module.AdminVideos })));
+const AdminNews = lazy(() => import("./components/admin/AdminNews").then((module) => ({ default: module.AdminNews })));
+const AdminNotifications = lazy(() => import("./components/admin/AdminNotifications").then((module) => ({ default: module.AdminNotifications })));
+const AdminDealers = lazy(() => import("./components/admin/AdminDealers").then((module) => ({ default: module.AdminDealers })));
+const AdminSettings = lazy(() => import("./components/admin/AdminSettings").then((module) => ({ default: module.AdminSettings })));
+const AdminBanners = lazy(() => import("./components/admin/AdminBanners").then((module) => ({ default: module.AdminBanners })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 10,
-      refetchOnWindowFocus: true,
-      refetchOnMount: true,
+      staleTime: 1000 * 30,
+      gcTime: 1000 * 60 * 5,
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
       refetchOnReconnect: true,
-      retry: 2,
+      retry: 1,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     },
     mutations: {
-      retry: 1,
+      retry: 0,
     },
   },
 });
+
+const RouteLoader = () => (
+  <div className="flex min-h-screen items-center justify-center bg-background">
+    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -43,24 +53,26 @@ const App = () => (
         <Sonner />
         <PopupNotification />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/install" element={<InstallApp />} />
-            
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<AdminDashboard />} />
-              <Route path="products" element={<AdminProducts />} />
-              <Route path="promotions" element={<AdminPromotions />} />
-              <Route path="banners" element={<AdminBanners />} />
-              <Route path="videos" element={<AdminVideos />} />
-              <Route path="news" element={<AdminNews />} />
-              <Route path="notifications" element={<AdminNotifications />} />
-              <Route path="dealers" element={<AdminDealers />} />
-              <Route path="settings" element={<AdminSettings />} />
-            </Route>
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <Suspense fallback={<RouteLoader />}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/install" element={<InstallApp />} />
+
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="products" element={<AdminProducts />} />
+                <Route path="promotions" element={<AdminPromotions />} />
+                <Route path="banners" element={<AdminBanners />} />
+                <Route path="videos" element={<AdminVideos />} />
+                <Route path="news" element={<AdminNews />} />
+                <Route path="notifications" element={<AdminNotifications />} />
+                <Route path="dealers" element={<AdminDealers />} />
+                <Route path="settings" element={<AdminSettings />} />
+              </Route>
+
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </AppProvider>

@@ -1,10 +1,9 @@
-import { useState, useRef } from 'react';
+import { Suspense, lazy, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Plus, Search, Edit2, Trash2, Package, Loader2,
   TrendingUp, Star, Upload, X, Image as ImageIcon, Check, Sparkles, FileSpreadsheet,
 } from 'lucide-react';
-import { AdminBulkUpload } from './AdminBulkUpload';
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, type Product } from '@/hooks/useProducts';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -12,6 +11,8 @@ import { useImageUpload } from '@/hooks/useImageUpload';
 import { useTranslateContent } from '@/hooks/useTranslateContent';
 import { TranslationPreview } from './TranslationPreview';
 import { allIndianCrops, indianStates } from '@/lib/crops';
+
+const AdminBulkUpload = lazy(() => import('./AdminBulkUpload').then((module) => ({ default: module.AdminBulkUpload })));
 
 export const AdminProducts = () => {
   const [showBulkUpload, setShowBulkUpload] = useState(false);
@@ -22,6 +23,7 @@ export const AdminProducts = () => {
   const { uploadImage, isUploading } = useImageUpload();
   const { generateTranslations, isGenerating } = useTranslateContent();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isSaving = createProduct.isPending || updateProduct.isPending;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -44,8 +46,9 @@ export const AdminProducts = () => {
     translations: {} as Record<string, { title: string; message: string }>,
   });
 
-  const filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredProducts = useMemo(
+    () => products.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase())),
+    [products, searchQuery],
   );
 
   const handleDelete = (id: string) => {
@@ -157,7 +160,11 @@ export const AdminProducts = () => {
   };
 
   if (showBulkUpload) {
-    return <AdminBulkUpload onBack={() => setShowBulkUpload(false)} />;
+    return (
+      <Suspense fallback={<div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>}>
+        <AdminBulkUpload onBack={() => setShowBulkUpload(false)} />
+      </Suspense>
+    );
   }
 
   if (isLoading) {
@@ -207,7 +214,7 @@ export const AdminProducts = () => {
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
                       {product.image_url ? (
-                        <img src={product.image_url} alt={product.name} className="w-10 h-10 rounded-xl object-cover" onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }} />
+                        <img src={product.image_url} alt={product.name} className="w-10 h-10 rounded-xl object-cover" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }} />
                       ) : (
                         <div className="w-10 h-10 rounded-xl bg-gradient-hero flex items-center justify-center">
                           <Package className="w-5 h-5 text-white" />
@@ -282,7 +289,7 @@ export const AdminProducts = () => {
               </div>
 
               {/* AI Translate Button */}
-              <button type="button" onClick={handleAIGenerate} disabled={isGenerating || !formData.name.trim()}
+              <button type="button" onClick={handleAIGenerate} disabled={isGenerating || isSaving || !formData.name.trim()}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary font-medium transition-colors disabled:opacity-50">
                 {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating translations...</> : <><Sparkles className="w-4 h-4" /> AI Translate Description (MR/HI/EN)</>}
               </button>
@@ -334,7 +341,7 @@ export const AdminProducts = () => {
                 <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleImageUpload} className="hidden" />
                 {formData.image_url ? (
                   <div className="relative inline-block">
-                    <img src={formData.image_url} alt="Product" className="w-32 h-32 object-cover rounded-xl border border-border" onError={e => { e.currentTarget.src = '/placeholder.svg'; }} />
+                    <img src={formData.image_url} alt="Product" className="w-32 h-32 object-cover rounded-xl border border-border" loading="lazy" decoding="async" onError={e => { e.currentTarget.src = '/placeholder.svg'; }} />
                     <button type="button" onClick={clearImage} className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-white rounded-full flex items-center justify-center"><X className="w-4 h-4" /></button>
                   </div>
                 ) : (
@@ -385,10 +392,10 @@ export const AdminProducts = () => {
 
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-border hover:bg-muted transition-colors">Cancel</button>
-                <button type="submit" disabled={createProduct.isPending || updateProduct.isPending}
+                <button type="submit" disabled={isSaving || isUploading}
                   className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                  {(createProduct.isPending || updateProduct.isPending) && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {editingProduct ? 'Update' : 'Create'}
+                  {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {isSaving ? 'Saving...' : editingProduct ? 'Update' : 'Create'}
                 </button>
               </div>
             </form>
