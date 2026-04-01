@@ -11,10 +11,6 @@ const translations = {
   en: { title: 'Learn from Videos', close: 'Close', noVideos: 'No videos available' },
 };
 
-const isInIframe = () => {
-  try { return window.self !== window.top; } catch { return true; }
-};
-
 export const VideosSection = () => {
   const { data: videos = [], isLoading } = useActiveVideos();
   const { language } = useApp();
@@ -90,16 +86,13 @@ export const VideosSection = () => {
               transition={{ delay: index * 0.1 }}
               onClick={() => {
                 if (youtubeId) {
-                  if (isInIframe()) {
-                    window.open(getYouTubeWatchUrl(youtubeId), '_blank', 'noopener,noreferrer');
-                  } else {
-                    setPlayingVideo(youtubeId);
-                  }
+                  setPlayingVideo(youtubeId);
                   return;
                 }
 
                 if (video.youtube_url) {
-                  window.open(video.youtube_url, '_blank', 'noopener,noreferrer');
+                  setPlayingVideo(null);
+                  window.open(video.youtube_url, '_blank');
                 }
               }}
               className="bg-card rounded-2xl overflow-hidden shadow-card border border-border/50 hover:shadow-card-hover transition-all cursor-pointer group"

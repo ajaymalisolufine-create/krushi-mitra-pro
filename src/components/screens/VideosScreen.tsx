@@ -32,10 +32,6 @@ const translations = {
   },
 };
 
-const isInIframe = () => {
-  try { return window.self !== window.top; } catch { return true; }
-};
-
 export const VideosScreen = () => {
   const { language, selectedCrops = [] } = useApp();
   const t = translations[language as keyof typeof translations] || translations.en;
@@ -59,20 +55,16 @@ export const VideosScreen = () => {
     if (video.youtube_url) {
       const youtubeId = extractYouTubeId(video.youtube_url);
       if (youtubeId) {
-        if (isInIframe()) {
-          window.open(getYouTubeWatchUrl(youtubeId), '_blank', 'noopener,noreferrer');
-        } else {
-          setPlayingVideo(youtubeId);
-        }
+        setPlayingVideo(youtubeId);
         return;
       }
 
-      window.open(video.youtube_url, '_blank', 'noopener,noreferrer');
+      window.open(video.youtube_url, '_blank');
       return;
     }
 
     if (video.video_url) {
-      window.open(video.video_url, '_blank', 'noopener,noreferrer');
+      window.open(video.video_url, '_blank');
     }
   };
 
