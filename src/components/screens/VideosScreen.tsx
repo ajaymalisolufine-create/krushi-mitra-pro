@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Eye, Clock, Filter, Video, X, ArrowLeft } from 'lucide-react';
 import { useActiveVideos } from '@/hooks/useVideos';
 import { useApp } from '@/contexts/AppContext';
+import { extractYouTubeId, getYouTubeEmbedUrl, getYouTubeWatchUrl } from '@/lib/youtube';
 
 const translations = {
   mr: {
@@ -30,14 +31,6 @@ const translations = {
     close: 'Close',
   },
 };
-
-const extractYouTubeId = (url: string): string | null => {
-  const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-  const match = url.match(regex);
-  return match ? match[1] : null;
-};
-
-const getYoutubeWatchUrl = (videoId: string) => `https://www.youtube.com/watch?v=${videoId}`;
 
 const isInIframe = () => {
   try { return window.self !== window.top; } catch { return true; }
@@ -67,15 +60,19 @@ export const VideosScreen = () => {
       const youtubeId = extractYouTubeId(video.youtube_url);
       if (youtubeId) {
         if (isInIframe()) {
-          window.open(getYoutubeWatchUrl(youtubeId), '_blank');
+          window.open(getYouTubeWatchUrl(youtubeId), '_blank', 'noopener,noreferrer');
         } else {
           setPlayingVideo(youtubeId);
         }
         return;
       }
+
+      window.open(video.youtube_url, '_blank', 'noopener,noreferrer');
+      return;
     }
+
     if (video.video_url) {
-      window.open(video.video_url, '_blank');
+      window.open(video.video_url, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -121,7 +118,7 @@ export const VideosScreen = () => {
             <div className="flex-1 flex items-center justify-center px-4 pb-4">
               <div className="w-full max-w-3xl aspect-video rounded-xl overflow-hidden">
                 <iframe
-                  src={`https://www.youtube.com/embed/${playingVideo}?autoplay=1&rel=0`}
+                  src={getYouTubeEmbedUrl(playingVideo)}
                   title="YouTube video player"
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

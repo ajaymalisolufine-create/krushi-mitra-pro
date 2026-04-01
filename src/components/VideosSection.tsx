@@ -3,20 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PlayCircle, Clock, Eye, X, ArrowLeft, Play, Loader2 } from 'lucide-react';
 import { useActiveVideos } from '@/hooks/useVideos';
 import { useApp } from '@/contexts/AppContext';
+import { extractYouTubeId, getYouTubeEmbedUrl, getYouTubeWatchUrl } from '@/lib/youtube';
 
 const translations = {
   mr: { title: 'शिका व्हिडिओंमधून', close: 'बंद करा', noVideos: 'व्हिडिओ उपलब्ध नाहीत' },
   hi: { title: 'वीडियो से सीखें', close: 'बंद करें', noVideos: 'कोई वीडियो नहीं' },
   en: { title: 'Learn from Videos', close: 'Close', noVideos: 'No videos available' },
 };
-
-const extractYoutubeId = (url: string | null): string | null => {
-  if (!url) return null;
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=))([a-zA-Z0-9_-]{11})/);
-  return match ? match[1] : null;
-};
-
-const getYoutubeWatchUrl = (videoId: string) => `https://www.youtube.com/watch?v=${videoId}`;
 
 const isInIframe = () => {
   try { return window.self !== window.top; } catch { return true; }
@@ -65,7 +58,7 @@ export const VideosSection = () => {
             <div className="flex-1 flex items-center justify-center px-4 pb-4">
               <div className="w-full max-w-3xl aspect-video rounded-xl overflow-hidden">
                 <iframe
-                  src={`https://www.youtube.com/embed/${playingVideo}?autoplay=1&rel=0`}
+                  src={getYouTubeEmbedUrl(playingVideo)}
                   title="YouTube video player"
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -86,7 +79,7 @@ export const VideosSection = () => {
       {/* Videos Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {latestVideos.map((video, index) => {
-          const youtubeId = extractYoutubeId(video.youtube_url);
+          const youtubeId = extractYouTubeId(video.youtube_url);
           const thumbnail = video.thumbnail_url || (youtubeId ? `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg` : null);
 
           return (
@@ -98,10 +91,15 @@ export const VideosSection = () => {
               onClick={() => {
                 if (youtubeId) {
                   if (isInIframe()) {
-                    window.open(getYoutubeWatchUrl(youtubeId), '_blank');
+                    window.open(getYouTubeWatchUrl(youtubeId), '_blank', 'noopener,noreferrer');
                   } else {
                     setPlayingVideo(youtubeId);
                   }
+                  return;
+                }
+
+                if (video.youtube_url) {
+                  window.open(video.youtube_url, '_blank', 'noopener,noreferrer');
                 }
               }}
               className="bg-card rounded-2xl overflow-hidden shadow-card border border-border/50 hover:shadow-card-hover transition-all cursor-pointer group"
