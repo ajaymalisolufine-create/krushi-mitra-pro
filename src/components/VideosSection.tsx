@@ -12,8 +12,14 @@ const translations = {
 
 const extractYoutubeId = (url: string | null): string | null => {
   if (!url) return null;
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([a-zA-Z0-9_-]{11})/);
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=))([a-zA-Z0-9_-]{11})/);
   return match ? match[1] : null;
+};
+
+const getYoutubeWatchUrl = (videoId: string) => `https://www.youtube.com/watch?v=${videoId}`;
+
+const isInIframe = () => {
+  try { return window.self !== window.top; } catch { return true; }
 };
 
 export const VideosSection = () => {

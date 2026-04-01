@@ -37,6 +37,12 @@ const extractYouTubeId = (url: string): string | null => {
   return match ? match[1] : null;
 };
 
+const getYoutubeWatchUrl = (videoId: string) => `https://www.youtube.com/watch?v=${videoId}`;
+
+const isInIframe = () => {
+  try { return window.self !== window.top; } catch { return true; }
+};
+
 export const VideosScreen = () => {
   const { language, selectedCrops = [] } = useApp();
   const t = translations[language as keyof typeof translations] || translations.en;
