@@ -95,7 +95,15 @@ export const VideosSection = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              onClick={() => youtubeId && setPlayingVideo(youtubeId)}
+              onClick={() => {
+                if (youtubeId) {
+                  if (isInIframe()) {
+                    window.open(getYoutubeWatchUrl(youtubeId), '_blank');
+                  } else {
+                    setPlayingVideo(youtubeId);
+                  }
+                }
+              }}
               className="bg-card rounded-2xl overflow-hidden shadow-card border border-border/50 hover:shadow-card-hover transition-all cursor-pointer group"
             >
               <div className="relative aspect-video overflow-hidden">

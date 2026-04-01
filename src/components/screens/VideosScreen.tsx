@@ -66,7 +66,11 @@ export const VideosScreen = () => {
     if (video.youtube_url) {
       const youtubeId = extractYouTubeId(video.youtube_url);
       if (youtubeId) {
-        setPlayingVideo(youtubeId);
+        if (isInIframe()) {
+          window.open(getYoutubeWatchUrl(youtubeId), '_blank');
+        } else {
+          setPlayingVideo(youtubeId);
+        }
         return;
       }
     }
