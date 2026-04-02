@@ -7,11 +7,12 @@ interface AppContextType {
   setLanguage: (lang: string) => void;
   selectedCrops: string[];
   setSelectedCrops: (crops: string[]) => void;
-  selectedCrop: string | null; // Legacy support - returns first crop
+  selectedCrop: string | null;
   setSelectedCrop: (crop: string | null) => void;
   user: User | null;
   phone: string | null;
   setPhone: (phone: string | null) => void;
+  email: string | null;
   pincode: string | null;
   setPincode: (pincode: string | null) => void;
   isAuthenticated: boolean;
