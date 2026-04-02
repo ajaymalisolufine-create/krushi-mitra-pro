@@ -168,15 +168,15 @@ export const NotificationsScreen = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center"
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
             onClick={() => setSelectedPromo(null)}
           >
             <motion.div
-              initial={{ y: 100 }}
-              animate={{ y: 0 }}
-              exit={{ y: 100 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-card w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl overflow-hidden max-h-[80vh] overflow-y-auto"
+              className="bg-card w-full max-w-lg rounded-2xl overflow-hidden max-h-[85vh] overflow-y-auto shadow-xl"
             >
               {selectedPromo.image_url && (
                 <img src={selectedPromo.image_url} alt={selectedPromo.title} className="w-full h-48 object-cover" />
