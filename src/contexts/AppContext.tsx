@@ -147,6 +147,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       user,
       phone,
       setPhone,
+      email: user?.email ?? null,
       pincode,
       setPincode,
       isAuthenticated: !!user,
