@@ -567,10 +567,11 @@ export type Database = {
           city: string | null
           created_at: string
           district: string | null
+          email: string | null
           id: string
           language: string
           name: string | null
-          phone: string
+          phone: string | null
           pincode: string | null
           selected_crop: string | null
           state: string | null
@@ -581,10 +582,11 @@ export type Database = {
           city?: string | null
           created_at?: string
           district?: string | null
+          email?: string | null
           id?: string
           language?: string
           name?: string | null
-          phone: string
+          phone?: string | null
           pincode?: string | null
           selected_crop?: string | null
           state?: string | null
@@ -595,10 +597,11 @@ export type Database = {
           city?: string | null
           created_at?: string
           district?: string | null
+          email?: string | null
           id?: string
           language?: string
           name?: string | null
-          phone?: string
+          phone?: string | null
           pincode?: string | null
           selected_crop?: string | null
           state?: string | null
