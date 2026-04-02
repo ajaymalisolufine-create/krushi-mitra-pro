@@ -59,7 +59,11 @@ export const NotificationsScreen = () => {
   const { data: news = [] } = usePublishedNews();
   const { data: promotions = [] } = useActivePromotions();
 
-  const [activeTab, setActiveTab] = useState<TabType>('notifications');
+  const [activeTab, setActiveTabRaw] = useState<TabType>('notifications');
+  const setActiveTab = (tab: TabType) => {
+    setActiveTabRaw(tab);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   const [selectedNotification, setSelectedNotification] = useState<any>(null);
   const [selectedNews, setSelectedNews] = useState<any>(null);
   const [selectedPromo, setSelectedPromo] = useState<any>(null);
