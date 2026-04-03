@@ -300,28 +300,31 @@ export type Database = {
         Row: {
           attempts: number
           created_at: string
+          email: string | null
           expires_at: string
           id: string
           otp_code: string
-          phone: string
+          phone: string | null
           verified: boolean
         }
         Insert: {
           attempts?: number
           created_at?: string
+          email?: string | null
           expires_at: string
           id?: string
           otp_code: string
-          phone: string
+          phone?: string | null
           verified?: boolean
         }
         Update: {
           attempts?: number
           created_at?: string
+          email?: string | null
           expires_at?: string
           id?: string
           otp_code?: string
-          phone?: string
+          phone?: string | null
           verified?: boolean
         }
         Relationships: []
