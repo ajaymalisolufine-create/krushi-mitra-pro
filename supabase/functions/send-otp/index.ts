@@ -55,25 +55,7 @@ Deno.serve(async (req) => {
 
     if (insertError) throw insertError;
 
-    // Try to send OTP via Supabase Auth email (magic link template includes token)
-    // We also generate our own OTP for custom verification
     console.log(`[OTP] Generated OTP ${otp} for ${email}`);
-
-    // Send OTP email using Supabase Auth's built-in email system
-    // We use admin.generateLink to create the user if needed, then signInWithOtp to send email
-    try {
-      // Ensure user exists or will be created by signInWithOtp
-      const supabaseClient = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_ANON_KEY")!
-      );
-      
-      // This sends an email (magic link template) - user will get our OTP from response
-      await supabaseClient.auth.signInWithOtp({ email });
-      console.log(`[OTP] Supabase auth email triggered for ${email}`);
-    } catch (emailErr) {
-      console.error("[OTP] Email trigger error (non-fatal):", emailErr);
-    }
 
     return new Response(
       JSON.stringify({
