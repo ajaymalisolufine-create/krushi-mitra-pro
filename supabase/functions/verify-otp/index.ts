@@ -12,11 +12,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { phone, otp, name, pincode, city, district, state, language } = await req.json();
+    const { email, otp, name, phone, pincode, city, district, state, language } = await req.json();
 
-    if (!phone || !otp) {
+    if (!email || !otp) {
       return new Response(
-        JSON.stringify({ error: "Phone and OTP are required" }),
+        JSON.stringify({ error: "Email and OTP are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -26,11 +26,11 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Find the latest unexpired, unverified OTP for this phone
+    // Find the latest unexpired, unverified OTP for this email
     const { data: otpRecord, error: fetchError } = await supabaseAdmin
       .from("otp_codes")
       .select("*")
-      .eq("phone", phone)
+      .eq("email", email)
       .eq("verified", false)
       .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false })
@@ -73,20 +73,20 @@ Deno.serve(async (req) => {
       .eq("id", otpRecord.id);
 
     // Create or get user using admin API
-    // First check if user exists with this phone
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const existingUser = existingUsers?.users?.find((u) => u.phone === phone);
-
     let userId: string;
+    
+    // Check if user exists with this email
+    const { data: userList } = await supabaseAdmin.auth.admin.listUsers();
+    const existingUser = userList?.users?.find((u) => u.email === email);
 
     if (existingUser) {
       userId = existingUser.id;
     } else {
-      // Create new user with phone
+      // Create new user with email
       const randomPassword = crypto.randomUUID();
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-        phone,
-        phone_confirm: true,
+        email,
+        email_confirm: true,
         password: randomPassword,
       });
 
@@ -98,7 +98,8 @@ Deno.serve(async (req) => {
     const { error: profileError } = await supabaseAdmin.from("user_profiles").upsert(
       {
         user_id: userId,
-        phone,
+        email,
+        phone: phone || null,
         name: name || null,
         pincode: pincode || null,
         city: city || null,
@@ -113,22 +114,10 @@ Deno.serve(async (req) => {
       console.error("Profile upsert error:", profileError);
     }
 
-    // Generate a session token for the user
-    // Use signInWithPassword won't work since we used random password
-    // Instead, generate a magic link token or use admin to create session
-    // We'll use admin.generateLink to create a magic link
-    const { data: tokenData, error: tokenError } =
-      await supabaseAdmin.auth.admin.generateLink({
-        type: "magiclink",
-        phone,
-      });
-
-    // Since generateLink with phone may not work, let's use a workaround:
-    // Set a known password temporarily, sign in, then the session persists
+    // Generate session by setting a temp password and signing in
     const tempPassword = `otp_verified_${crypto.randomUUID()}`;
-    await supabaseAdmin.auth.admin.updateUser(userId, { password: tempPassword });
+    await supabaseAdmin.auth.admin.updateUserById(userId, { password: tempPassword });
 
-    // Create a regular client to sign in
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!
@@ -136,7 +125,7 @@ Deno.serve(async (req) => {
 
     const { data: signInData, error: signInError } =
       await supabaseClient.auth.signInWithPassword({
-        phone,
+        email,
         password: tempPassword,
       });
 
