@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
 
     // Generate session by setting a temp password and signing in
     const tempPassword = `otp_verified_${crypto.randomUUID()}`;
-    await supabaseAdmin.auth.admin.updateUser(userId, { password: tempPassword });
+    await supabaseAdmin.auth.admin.updateUserById(userId, { password: tempPassword });
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
