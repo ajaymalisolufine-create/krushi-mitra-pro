@@ -16,19 +16,22 @@ import { useApp } from '@/contexts/AppContext';
 type OnboardingStep = 'splash' | 'language' | 'login' | 'main';
 
 const Index = () => {
-  const { language, setLanguage, selectedCrop, trackInteraction, activeTab, setActiveTab } = useApp();
+  const { language, setLanguage, selectedCrop, trackInteraction, activeTab, setActiveTab, isAuthenticated } = useApp();
   const [step, setStep] = useState<OnboardingStep>('splash');
 
   useEffect(() => {
     const onboardingComplete = localStorage.getItem('onboarding_complete');
-    if (onboardingComplete === 'true') {
+    if (onboardingComplete === 'true' && isAuthenticated) {
       setStep('main');
+    } else if (onboardingComplete === 'true' && !isAuthenticated) {
+      // User was logged out — force login again
+      setStep('login');
     }
-  }, []);
+  }, [isAuthenticated]);
 
   const handleSplashComplete = () => {
     const onboardingComplete = localStorage.getItem('onboarding_complete');
-    if (onboardingComplete === 'true') {
+    if (onboardingComplete === 'true' && isAuthenticated) {
       setStep('main');
     } else {
       setStep('language');
@@ -42,12 +45,6 @@ const Index = () => {
   const handleLoginComplete = () => {
     localStorage.setItem('onboarding_complete', 'true');
     trackInteraction('onboarding', 'complete', { authenticated: true });
-    setStep('main');
-  };
-
-  const handleLoginSkip = () => {
-    localStorage.setItem('onboarding_complete', 'true');
-    trackInteraction('onboarding', 'complete', { authenticated: false, skipped: true });
     setStep('main');
   };
 
@@ -69,7 +66,7 @@ const Index = () => {
 
   if (step === 'splash') return <SplashScreen onComplete={handleSplashComplete} />;
   if (step === 'language') return <LanguageSelectionScreen onComplete={handleLanguageComplete} />;
-  if (step === 'login') return <PhoneLoginScreen onComplete={handleLoginComplete} onSkip={handleLoginSkip} />;
+  if (step === 'login') return <PhoneLoginScreen onComplete={handleLoginComplete} />;
 
   return (
     <div className="min-h-screen bg-gradient-sunrise pb-24">
