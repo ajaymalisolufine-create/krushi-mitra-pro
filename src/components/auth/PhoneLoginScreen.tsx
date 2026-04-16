@@ -11,10 +11,9 @@ import { indianStates } from '@/lib/crops';
 
 interface PhoneLoginScreenProps {
   onComplete: () => void;
-  onSkip?: () => void;
 }
 
-export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) => {
+export const PhoneLoginScreen = ({ onComplete }: PhoneLoginScreenProps) => {
   const { language, setPincode, trackInteraction } = useApp();
   const [step, setStep] = useState<'form' | 'otp'>('form');
   const [email, setEmail] = useState('');
@@ -23,7 +22,7 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
   const [pincode, setPincodeLocal] = useState('');
   const [city, setCity] = useState('');
   const [district, setDistrict] = useState('');
-  const [state, setState] = useState('Maharashtra');
+  const [state, setState] = useState('');
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
@@ -81,17 +80,27 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
     }
   };
 
+  const isFormValid = name.trim().length > 0 && validateEmail(email) && validatePhone(phone) && validatePincode(pincode) && state.length > 0;
+
   const sendOtp = useCallback(async () => {
+    if (!name.trim()) {
+      toast({ title: getText('त्रुटी', 'त्रुटि', 'Error'), description: getText('कृपया नाव प्रविष्ट करा', 'कृपया नाम दर्ज करें', 'Please enter your name'), variant: 'destructive' });
+      return;
+    }
     if (!validateEmail(email)) {
       toast({ title: getText('त्रुटी', 'त्रुटि', 'Error'), description: getText('कृपया वैध ईमेल प्रविष्ट करा', 'कृपया वैध ईमेल दर्ज करें', 'Please enter a valid email'), variant: 'destructive' });
+      return;
+    }
+    if (!validatePhone(phone)) {
+      toast({ title: getText('त्रुटी', 'त्रुटि', 'Error'), description: getText('कृपया वैध 10 अंकी मोबाइल नंबर प्रविष्ट करा', 'कृपया वैध 10 अंकी मोबाइल नंबर दर्ज करें', 'Please enter a valid 10-digit mobile number'), variant: 'destructive' });
       return;
     }
     if (!validatePincode(pincode)) {
       toast({ title: getText('त्रुटी', 'त्रुटि', 'Error'), description: getText('कृपया वैध 6 अंकी पिनकोड प्रविष्ट करा', 'कृपया वैध 6 अंकी पिनकोड दर्ज करें', 'Please enter a valid 6-digit pincode'), variant: 'destructive' });
       return;
     }
-    if (phone && !validatePhone(phone)) {
-      toast({ title: getText('त्रुटी', 'त्रुटि', 'Error'), description: getText('कृपया वैध 10 अंकी मोबाइल नंबर प्रविष्ट करा', 'कृपया वैध 10 अंकी मोबाइल नंबर दर्ज करें', 'Please enter a valid 10-digit mobile number'), variant: 'destructive' });
+    if (!state) {
+      toast({ title: getText('त्रुटी', 'त्रुटि', 'Error'), description: getText('कृपया राज्य निवडा', 'कृपया राज्य चुनें', 'Please select a state'), variant: 'destructive' });
       return;
     }
     setIsLoading(true);
@@ -103,7 +112,6 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      // Store the OTP from response for verification
       if (data?.otp) {
         setGeneratedOtp(data.otp);
       }
@@ -125,7 +133,7 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
     } finally {
       setIsLoading(false);
     }
-  }, [email, pincode, phone, language, trackInteraction, getText]);
+  }, [email, pincode, phone, name, state, language, trackInteraction, getText]);
 
   const handleVerifyOTP = async () => {
     if (otp.length !== 6) {
@@ -151,7 +159,6 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      // Set the session from the edge function response
       if (data?.session) {
         await supabase.auth.setSession({
           access_token: data.session.access_token,
@@ -207,8 +214,6 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
     }
   };
 
-  const isFormValid = validateEmail(email) && validatePincode(pincode);
-
   return (
     <div className="min-h-screen bg-gradient-sunrise flex flex-col items-center justify-center p-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
@@ -242,7 +247,7 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
               <div>
                 <label className="block text-xs font-medium mb-1">
                   <User className="w-3 h-3 inline mr-1" />
-                  {getText('नाव', 'नाम', 'Name')}
+                  {getText('नाव', 'नाम', 'Name')} *
                 </label>
                 <Input type="text" placeholder={getText('तुमचे नाव', 'आपका नाम', 'Your name')} value={name} onChange={(e) => setName(e.target.value)} className="h-10" />
               </div>
@@ -275,6 +280,19 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
                 </div>
               </div>
 
+              {/* State Selection */}
+              <div>
+                <label className="block text-xs font-medium mb-1">{getText('राज्य', 'राज्य', 'State')} *</label>
+                <select
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">{getText('राज्य निवडा', 'राज्य चुनें', 'Select State')}</option>
+                  {indianStates.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+
               {/* Pincode */}
               <div>
                 <label className="block text-xs font-medium mb-1 flex items-center gap-1">
@@ -287,21 +305,13 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
               {/* City & District */}
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-medium mb-1">{getText('शहर/गाव', 'शहर/गांव', 'City/Village')}</label>
+                  <label className="block text-xs font-medium mb-1">{getText('शहर/गाव', 'शहर/गांव', 'City/Village')} *</label>
                   <Input type="text" placeholder={getText('शहर', 'शहर', 'City')} value={city} onChange={(e) => setCity(e.target.value)} className="h-10" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium mb-1">{getText('जिल्हा', 'जिला', 'District')}</label>
+                  <label className="block text-xs font-medium mb-1">{getText('जिल्हा', 'जिला', 'District')} *</label>
                   <Input type="text" placeholder={getText('जिल्हा', 'जिला', 'District')} value={district} onChange={(e) => setDistrict(e.target.value)} className="h-10" />
                 </div>
-              </div>
-
-              {/* State */}
-              <div>
-                <label className="block text-xs font-medium mb-1">{getText('राज्य', 'राज्य', 'State')} *</label>
-                <select value={state} onChange={(e) => setState(e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  {indianStates.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
               </div>
 
               <Button onClick={sendOtp} disabled={isLoading || !isFormValid} className="w-full h-11 bg-gradient-hero hover:opacity-90">
@@ -334,7 +344,6 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
                 {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : getText('सत्यापित करा', 'सत्यापित करें', 'Verify')}
               </Button>
 
-              {/* Resend OTP */}
               <Button variant="ghost" onClick={handleResendOtp} disabled={resendTimer > 0 || isLoading} className="w-full text-sm">
                 <RefreshCw className="w-4 h-4 mr-2" />
                 {resendTimer > 0
@@ -349,12 +358,6 @@ export const PhoneLoginScreen = ({ onComplete, onSkip }: PhoneLoginScreenProps) 
             </>
           )}
         </div>
-
-        {onSkip && (
-          <Button variant="ghost" onClick={onSkip} className="w-full mt-4 text-muted-foreground">
-            {getText('नंतर करा', 'बाद में करें', 'Skip for now')}
-          </Button>
-        )}
       </motion.div>
     </div>
   );

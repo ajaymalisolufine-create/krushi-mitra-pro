@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion';
-import { Phone, MapPin, Mail, MessageCircle, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
+import { Phone, MapPin, Mail, MessageCircle, ExternalLink, Loader2, AlertCircle, LogOut } from 'lucide-react';
 import { useDealersByPincode } from '@/hooks/useDealers';
 import { useApp } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
+import { toast } from '@/hooks/use-toast';
 
 export const ContactScreen = () => {
-  const { language, trackInteraction, pincode } = useApp();
+  const { language, trackInteraction, pincode, signOut } = useApp();
   const { data: dealers = [], isLoading } = useDealersByPincode(pincode);
   
   const getText = (mr: string, hi: string, en: string) => {
@@ -34,6 +35,24 @@ export const ContactScreen = () => {
   const handleDirections = async (lat: number, lng: number, dealerName: string) => {
     await trackInteraction('contact', 'directions_dealer', { dealer: dealerName });
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      localStorage.removeItem('onboarding_complete');
+      toast({
+        title: getText('लॉग आउट यशस्वी', 'लॉग आउट सफल', 'Logged Out'),
+        description: getText('तुम्ही यशस्वीरित्या लॉग आउट झालात', 'आप सफलतापूर्वक लॉग आउट हो गए', 'You have been logged out successfully'),
+      });
+      window.location.reload();
+    } catch {
+      toast({
+        title: getText('त्रुटी', 'त्रुटि', 'Error'),
+        description: getText('लॉग आउट करता आले नाही', 'लॉग आउट नहीं हो सका', 'Failed to log out'),
+        variant: 'destructive',
+      });
+    }
   };
 
   if (isLoading) {
@@ -196,6 +215,22 @@ export const ContactScreen = () => {
           </div>
         )}
       </div>
+
+      {/* Logout Button */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <Button
+          variant="outline"
+          onClick={handleLogout}
+          className="w-full border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          {getText('लॉग आउट', 'लॉग आउट', 'Logout')}
+        </Button>
+      </motion.div>
     </div>
   );
 };

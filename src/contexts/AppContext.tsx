@@ -15,6 +15,7 @@ interface AppContextType {
   email: string | null;
   pincode: string | null;
   setPincode: (pincode: string | null) => void;
+  userState: string | null;
   isAuthenticated: boolean;
   signOut: () => Promise<void>;
   trackInteraction: (screenName: string, interactionType: string, data?: Record<string, unknown>) => Promise<void>;
@@ -120,8 +121,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setPincode(null);
   };
 
+  const userState = localStorage.getItem('user_state') || null;
+
   const trackInteraction = async (screenName: string, interactionType: string, data?: Record<string, unknown>) => {
     try {
+      const jsonData = data ? JSON.parse(JSON.stringify(data)) : undefined;
+      // Log to lead_interactions (existing)
       await supabase.from('lead_interactions').insert([{
         user_id: user?.id || undefined,
         phone: phone || undefined,
@@ -129,7 +134,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         selected_crop: selectedCrop || undefined,
         screen_name: screenName,
         interaction_type: interactionType,
-        interaction_data: data ? JSON.parse(JSON.stringify(data)) : undefined,
+        interaction_data: jsonData,
+      }]);
+      // Log to farmer_activity_logs (new detailed tracking)
+      await supabase.from('farmer_activity_logs').insert([{
+        user_id: user?.id || undefined,
+        phone: phone || undefined,
+        email: user?.email || undefined,
+        activity_type: interactionType,
+        screen_name: screenName,
+        activity_data: jsonData,
       }]);
     } catch (error) {
       console.error('Failed to track interaction:', error);
@@ -150,6 +164,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       email: user?.email ?? null,
       pincode,
       setPincode,
+      userState,
       isAuthenticated: !!user,
       signOut,
       trackInteraction,
