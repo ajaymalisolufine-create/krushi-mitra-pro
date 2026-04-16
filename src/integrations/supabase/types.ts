@@ -122,6 +122,39 @@ export type Database = {
         }
         Relationships: []
       }
+      farmer_activity_logs: {
+        Row: {
+          activity_data: Json | null
+          activity_type: string
+          created_at: string
+          email: string | null
+          id: string
+          phone: string | null
+          screen_name: string | null
+          user_id: string | null
+        }
+        Insert: {
+          activity_data?: Json | null
+          activity_type: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          phone?: string | null
+          screen_name?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          activity_data?: Json | null
+          activity_type?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          phone?: string | null
+          screen_name?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       import_logs: {
         Row: {
           created_at: string | null
