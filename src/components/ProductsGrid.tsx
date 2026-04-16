@@ -17,12 +17,10 @@ const categories = [
 
 export const ProductsGrid = () => {
   const { data: products = [], isLoading } = useProducts();
-  const { language, selectedCrops, setSelectedCrops, trackInteraction } = useApp();
+  const { language, selectedCrops, setSelectedCrops, trackInteraction, userState } = useApp();
   const [activeCategory, setActiveCategory] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showCropFilter, setShowCropFilter] = useState(false);
-
-  const userState = localStorage.getItem('user_state') || '';
 
   const getText = (mr: string, hi: string, en: string) => {
     switch (language) {
