@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Search, Filter, Users, Eye, MousePointer } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface ActivityLog {
   id: string;
@@ -15,39 +16,66 @@ interface ActivityLog {
   created_at: string;
 }
 
-const ACTIVITY_TYPES = [
-  { key: 'all', label: 'All Activities' },
-  { key: 'product_view', label: 'Product Views' },
-  { key: 'search', label: 'Searches' },
-  { key: 'section_visit', label: 'Section Visits' },
+interface ProfileLite {
+  user_id: string;
+  name: string | null;
+  phone: string | null;
+  state: string | null;
+  district: string | null;
+}
+
+const SCREEN_TYPES = [
+  { key: 'all', label: 'All Screens' },
+  { key: 'product_view', label: 'Product View' },
+  { key: 'product_enquiry', label: 'Product Enquiry' },
+  { key: 'promotion_view', label: 'Promotion' },
+  { key: 'offer_click', label: 'Offer Click' },
+  { key: 'banner_click', label: 'Banner Click' },
+  { key: 'news_view', label: 'News View' },
+  { key: 'video_view', label: 'Video View' },
+  { key: 'search', label: 'Search' },
+  { key: 'section_visit', label: 'Section Visit' },
+  { key: 'login_success', label: 'Login' },
   { key: 'otp_sent', label: 'OTP Sent' },
-  { key: 'login_success', label: 'Logins' },
 ];
+
+// Pull a user-friendly title from activity_data (no descriptions)
+const extractTitle = (log: ActivityLog): string => {
+  const d = log.activity_data || {};
+  const candidates = [
+    d.product_name, d.productName,
+    d.offer_name, d.offerName,
+    d.promotion_name, d.promotionName, d.promotion_title,
+    d.banner_title, d.bannerTitle,
+    d.news_title, d.newsTitle, d.title,
+    d.video_title, d.videoTitle,
+    d.query, d.search_query,
+    d.name,
+  ];
+  const found = candidates.find((v) => typeof v === 'string' && v.trim().length > 0);
+  if (found) return String(found);
+  if (log.activity_type === 'section_visit' && log.screen_name) return log.screen_name;
+  return '-';
+};
 
 export const AdminFarmerActivity = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activityFilter, setActivityFilter] = useState('all');
+  const [screenFilter, setScreenFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
   const { data: logs = [], isLoading } = useQuery({
-    queryKey: ['farmer-activity', activityFilter, dateFrom, dateTo],
+    queryKey: ['farmer-activity', screenFilter, dateFrom, dateTo],
     queryFn: async () => {
       let query = supabase
         .from('farmer_activity_logs')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(500);
+        .limit(1000);
 
-      if (activityFilter !== 'all') {
-        query = query.eq('activity_type', activityFilter);
-      }
-      if (dateFrom) {
-        query = query.gte('created_at', `${dateFrom}T00:00:00`);
-      }
-      if (dateTo) {
-        query = query.lte('created_at', `${dateTo}T23:59:59`);
-      }
+      if (screenFilter !== 'all') query = query.eq('activity_type', screenFilter);
+      if (dateFrom) query = query.gte('created_at', `${dateFrom}T00:00:00`);
+      if (dateTo) query = query.lte('created_at', `${dateTo}T23:59:59`);
 
       const { data, error } = await query;
       if (error) throw error;
@@ -55,58 +83,120 @@ export const AdminFarmerActivity = () => {
     },
   });
 
-  const filteredLogs = logs.filter(log => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      log.email?.toLowerCase().includes(q) ||
-      log.phone?.includes(q) ||
-      log.screen_name?.toLowerCase().includes(q) ||
-      log.activity_type.toLowerCase().includes(q) ||
-      JSON.stringify(log.activity_data || {}).toLowerCase().includes(q)
-    );
+  // Fetch profiles for joining (name, state, district)
+  const userIds = useMemo(
+    () => Array.from(new Set(logs.map((l) => l.user_id).filter(Boolean))) as string[],
+    [logs],
+  );
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['farmer-activity-profiles', userIds.join(',')],
+    queryFn: async () => {
+      if (userIds.length === 0) return [] as ProfileLite[];
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('user_id, name, phone, state, district')
+        .in('user_id', userIds);
+      if (error) throw error;
+      return (data || []) as ProfileLite[];
+    },
+    enabled: userIds.length > 0,
   });
 
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'product_view': return <Eye className="w-4 h-4 text-blue-500" />;
-      case 'search': return <Search className="w-4 h-4 text-amber-500" />;
-      case 'section_visit': return <MousePointer className="w-4 h-4 text-green-500" />;
-      default: return <Users className="w-4 h-4 text-muted-foreground" />;
-    }
+  const profileMap = useMemo(() => {
+    const m = new Map<string, ProfileLite>();
+    profiles.forEach((p) => m.set(p.user_id, p));
+    return m;
+  }, [profiles]);
+
+  const getRow = (log: ActivityLog) => {
+    const p = log.user_id ? profileMap.get(log.user_id) : undefined;
+    const dataAny = (log.activity_data || {}) as Record<string, any>;
+    return {
+      name: p?.name || dataAny._name || '-',
+      phone: p?.phone || log.phone || '-',
+      state: p?.state || dataAny._state || '-',
+      district: p?.district || dataAny._district || '-',
+      screen: log.screen_name || log.activity_type.replace(/_/g, ' '),
+      title: extractTitle(log),
+    };
   };
 
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const filteredLogs = useMemo(() => {
+    if (!searchQuery.trim()) return logs;
+    const q = searchQuery.toLowerCase().trim();
+    return logs.filter((log) => {
+      const r = getRow(log);
+      return (
+        r.name.toLowerCase().includes(q) ||
+        r.phone.toLowerCase().includes(q) ||
+        r.state.toLowerCase().includes(q) ||
+        r.district.toLowerCase().includes(q) ||
+        r.title.toLowerCase().includes(q) ||
+        r.screen.toLowerCase().includes(q)
+      );
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [logs, searchQuery, profileMap]);
+
+  const formatDate = (s: string) => {
+    const d = new Date(s);
+    return d.toLocaleString('en-IN', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
   };
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Farmer Activity History</h1>
-        <p className="text-muted-foreground">Track farmer interactions and behavior ({filteredLogs.length} records)</p>
+        <h1 className="text-2xl font-bold text-foreground">Farmer Activity</h1>
+        <p className="text-muted-foreground">
+          Track farmer interactions ({filteredLogs.length} records)
+        </p>
       </div>
 
       {/* Filters */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Search by email, phone..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+          <Input
+            placeholder="Search name, mobile, state, district..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
         </div>
-        <select
-          value={activityFilter}
-          onChange={(e) => setActivityFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-        >
-          {ACTIVITY_TYPES.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
-        </select>
-        <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} placeholder="From date" />
-        <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} placeholder="To date" />
+        <Select value={screenFilter} onValueChange={setScreenFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Screen Type" />
+          </SelectTrigger>
+          <SelectContent>
+            {SCREEN_TYPES.map((t) => (
+              <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          aria-label="From date"
+        />
+        <Input
+          type="date"
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          aria-label="To date"
+        />
       </div>
 
       {/* Activity Table */}
@@ -114,39 +204,44 @@ export const AdminFarmerActivity = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="text-left px-4 py-3 font-medium">User</th>
-                <th className="text-left px-4 py-3 font-medium">Activity</th>
-                <th className="text-left px-4 py-3 font-medium">Screen</th>
-                <th className="text-left px-4 py-3 font-medium">Details</th>
-                <th className="text-left px-4 py-3 font-medium">Date</th>
+              <tr className="border-b border-border bg-muted/50 text-left">
+                <th className="px-4 py-3 font-medium whitespace-nowrap">Date</th>
+                <th className="px-4 py-3 font-medium">User Name</th>
+                <th className="px-4 py-3 font-medium whitespace-nowrap">Mobile</th>
+                <th className="px-4 py-3 font-medium">State</th>
+                <th className="px-4 py-3 font-medium">District</th>
+                <th className="px-4 py-3 font-medium">Screen</th>
+                <th className="px-4 py-3 font-medium">Details</th>
               </tr>
             </thead>
             <tbody>
               {filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-12 text-muted-foreground">No activity logs found</td>
+                  <td colSpan={7} className="text-center py-12 text-muted-foreground">
+                    No activity logs found
+                  </td>
                 </tr>
               ) : (
-                filteredLogs.map(log => (
-                  <tr key={log.id} className="border-b border-border/50 hover:bg-muted/30">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-xs truncate max-w-[150px]">{log.email || 'Anonymous'}</p>
-                      {log.phone && <p className="text-xs text-muted-foreground">{log.phone}</p>}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        {getActivityIcon(log.activity_type)}
-                        <span className="capitalize text-xs">{log.activity_type.replace(/_/g, ' ')}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{log.screen_name || '-'}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground max-w-[200px] truncate">
-                      {log.activity_data ? JSON.stringify(log.activity_data).slice(0, 80) : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatDate(log.created_at)}</td>
-                  </tr>
-                ))
+                filteredLogs.map((log) => {
+                  const r = getRow(log);
+                  return (
+                    <tr key={log.id} className="border-b border-border/50 hover:bg-muted/30">
+                      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                        {formatDate(log.created_at)}
+                      </td>
+                      <td className="px-4 py-3 text-xs font-medium">{r.name}</td>
+                      <td className="px-4 py-3 text-xs whitespace-nowrap">{r.phone}</td>
+                      <td className="px-4 py-3 text-xs">{r.state}</td>
+                      <td className="px-4 py-3 text-xs">{r.district}</td>
+                      <td className="px-4 py-3 text-xs capitalize">
+                        {r.screen.replace(/_/g, ' ')}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground max-w-[280px] truncate">
+                        {r.title}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

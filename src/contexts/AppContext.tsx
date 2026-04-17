@@ -137,13 +137,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         interaction_data: jsonData,
       }]);
       // Log to farmer_activity_logs (new detailed tracking)
+      // Enrich with profile snapshot (name/state/district) for admin reporting
+      const enriched = {
+        ...(jsonData || {}),
+        _name: localStorage.getItem('user_name') || undefined,
+        _state: localStorage.getItem('user_state') || undefined,
+        _district: localStorage.getItem('user_district') || undefined,
+        _city: localStorage.getItem('user_city') || undefined,
+      };
       await supabase.from('farmer_activity_logs').insert([{
         user_id: user?.id || undefined,
-        phone: phone || undefined,
+        phone: phone || localStorage.getItem('user_phone') || undefined,
         email: user?.email || undefined,
         activity_type: interactionType,
         screen_name: screenName,
-        activity_data: jsonData,
+        activity_data: enriched,
       }]);
     } catch (error) {
       console.error('Failed to track interaction:', error);
