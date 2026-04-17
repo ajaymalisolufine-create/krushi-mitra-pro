@@ -118,7 +118,7 @@ export const VideosScreen = () => {
                 <X className="w-5 h-5 text-white" />
               </button>
             </div>
-            <div className="flex-1 flex items-center justify-center px-4 pb-4">
+            <div className="flex-1 flex flex-col items-center justify-center px-4 pb-4 gap-3">
               <div className="w-full max-w-3xl aspect-video rounded-xl overflow-hidden">
                 <iframe
                   src={getYouTubeEmbedUrl(playingVideo)}
@@ -129,6 +129,14 @@ export const VideosScreen = () => {
                   className="w-full h-full"
                 />
               </div>
+              {activeVideoMeta && (
+                <button onClick={() => enquire({ sourceType: 'video', sourceId: activeVideoMeta.id, sourceTitle: activeVideoMeta.title })}
+                  disabled={isEnquiring}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-harvest-gold to-sunrise-orange text-white rounded-full font-semibold text-sm disabled:opacity-50">
+                  {isEnquiring ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingBag className="w-4 h-4" />}
+                  {enquireLabel}
+                </button>
+              )}
             </div>
           </motion.div>
         )}
