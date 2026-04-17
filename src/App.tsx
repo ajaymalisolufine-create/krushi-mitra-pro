@@ -22,6 +22,7 @@ const AdminDealers = lazy(() => import("./components/admin/AdminDealers").then((
 const AdminSettings = lazy(() => import("./components/admin/AdminSettings").then((module) => ({ default: module.AdminSettings })));
 const AdminBanners = lazy(() => import("./components/admin/AdminBanners").then((module) => ({ default: module.AdminBanners })));
 const AdminFarmerActivity = lazy(() => import("./components/admin/AdminFarmerActivity").then((module) => ({ default: module.AdminFarmerActivity })));
+const AdminLeads = lazy(() => import("./components/admin/AdminLeads").then((module) => ({ default: module.AdminLeads })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -70,6 +71,7 @@ const App = () => (
                 <Route path="dealers" element={<AdminDealers />} />
                 <Route path="settings" element={<AdminSettings />} />
                 <Route path="farmer-activity" element={<AdminFarmerActivity />} />
+                <Route path="leads" element={<AdminLeads />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
