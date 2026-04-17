@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Eye, Clock, Filter, Video, X, ArrowLeft } from 'lucide-react';
+import { Play, Eye, Clock, Filter, Video, X, ArrowLeft, ShoppingBag, Loader2 } from 'lucide-react';
 import { useActiveVideos } from '@/hooks/useVideos';
 import { useApp } from '@/contexts/AppContext';
+import { useEnquire } from '@/hooks/useEnquire';
 import { extractYouTubeId, getYouTubeEmbedUrl, getYouTubeWatchUrl } from '@/lib/youtube';
+import { supabase } from '@/integrations/supabase/client';
 
 const translations = {
   mr: {
@@ -34,11 +36,14 @@ const translations = {
 
 export const VideosScreen = () => {
   const { language, selectedCrops = [] } = useApp();
+  const { enquire, isSubmitting: isEnquiring } = useEnquire();
   const t = translations[language as keyof typeof translations] || translations.en;
+  const enquireLabel = language === 'mr' ? 'चौकशी करा' : language === 'hi' ? 'पूछताछ करें' : 'Enquire Now';
   
   const { data: videos = [], isLoading } = useActiveVideos();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
+  const [activeVideoMeta, setActiveVideoMeta] = useState<{ id: string; title: string } | null>(null);
 
   const categories = ['all', ...new Set(videos.map(v => v.category).filter(Boolean) as string[])];
   
@@ -51,18 +56,24 @@ export const VideosScreen = () => {
     return categoryMatch && cropMatch;
   });
 
+  const incrementViews = async (video: typeof videos[0]) => {
+    try {
+      await supabase.from('videos').update({ views: (video.views || 0) + 1 }).eq('id', video.id);
+    } catch (e) { console.warn('view count update failed', e); }
+  };
+
   const handleVideoClick = (video: typeof videos[0]) => {
+    incrementViews(video);
+    setActiveVideoMeta({ id: video.id, title: video.title });
     if (video.youtube_url) {
       const youtubeId = extractYouTubeId(video.youtube_url);
       if (youtubeId) {
         setPlayingVideo(youtubeId);
         return;
       }
-
       window.open(video.youtube_url, '_blank');
       return;
     }
-
     if (video.video_url) {
       window.open(video.video_url, '_blank');
     }
