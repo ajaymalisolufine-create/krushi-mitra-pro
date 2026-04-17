@@ -370,13 +370,19 @@ export type Database = {
           id: string
           language: string | null
           name: string | null
+          notes: string | null
           phone: string | null
           pincode: string | null
           product_id: string | null
           product_name: string
           selected_crops: string[] | null
+          source_id: string | null
+          source_title: string | null
+          source_type: string
           state: string | null
+          status: string
           user_id: string | null
+          village: string | null
         }
         Insert: {
           city?: string | null
@@ -385,13 +391,19 @@ export type Database = {
           id?: string
           language?: string | null
           name?: string | null
+          notes?: string | null
           phone?: string | null
           pincode?: string | null
           product_id?: string | null
           product_name: string
           selected_crops?: string[] | null
+          source_id?: string | null
+          source_title?: string | null
+          source_type?: string
           state?: string | null
+          status?: string
           user_id?: string | null
+          village?: string | null
         }
         Update: {
           city?: string | null
@@ -400,13 +412,19 @@ export type Database = {
           id?: string
           language?: string | null
           name?: string | null
+          notes?: string | null
           phone?: string | null
           pincode?: string | null
           product_id?: string | null
           product_name?: string
           selected_crops?: string[] | null
+          source_id?: string | null
+          source_title?: string | null
+          source_type?: string
           state?: string | null
+          status?: string
           user_id?: string | null
+          village?: string | null
         }
         Relationships: [
           {
@@ -604,8 +622,10 @@ export type Database = {
           created_at: string
           district: string | null
           email: string | null
+          first_install_at: string | null
           id: string
           language: string
+          last_active_at: string | null
           name: string | null
           phone: string | null
           pincode: string | null
@@ -619,8 +639,10 @@ export type Database = {
           created_at?: string
           district?: string | null
           email?: string | null
+          first_install_at?: string | null
           id?: string
           language?: string
+          last_active_at?: string | null
           name?: string | null
           phone?: string | null
           pincode?: string | null
@@ -634,8 +656,10 @@ export type Database = {
           created_at?: string
           district?: string | null
           email?: string | null
+          first_install_at?: string | null
           id?: string
           language?: string
+          last_active_at?: string | null
           name?: string | null
           phone?: string | null
           pincode?: string | null
