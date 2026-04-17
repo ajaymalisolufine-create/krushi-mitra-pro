@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Megaphone, Newspaper, Tag, ExternalLink, Calendar, X, Clock, MessageCircle, Phone } from 'lucide-react';
+import { Bell, Megaphone, Newspaper, Tag, ExternalLink, Calendar, X, Clock, MessageCircle, Phone, ShoppingBag, Loader2 } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { usePublishedNews } from '@/hooks/useNews';
 import { useActivePromotions } from '@/hooks/usePromotions';
 import { useApp } from '@/contexts/AppContext';
+import { useEnquire } from '@/hooks/useEnquire';
 import { format } from 'date-fns';
 
 const translations = {
@@ -53,7 +54,9 @@ type TabType = 'notifications' | 'news' | 'offers';
 
 export const NotificationsScreen = () => {
   const { language } = useApp();
+  const { enquire, isSubmitting: isEnquiring } = useEnquire();
   const t = translations[language as keyof typeof translations] || translations.en;
+  const enquireLabel = language === 'mr' ? 'चौकशी करा' : language === 'hi' ? 'पूछताछ करें' : 'Enquire Now';
   
   const { data: notifications = [] } = useNotifications();
   const { data: news = [] } = usePublishedNews();
