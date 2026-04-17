@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Tag, ChevronLeft, ChevronRight, MessageCircle, Phone, Clock, Loader2, X } from 'lucide-react';
+import { Tag, ChevronLeft, ChevronRight, MessageCircle, Phone, Clock, Loader2, X, ShoppingBag } from 'lucide-react';
 import { useActivePromotions } from '@/hooks/usePromotions';
 import { useApp } from '@/contexts/AppContext';
+import { useEnquire } from '@/hooks/useEnquire';
 import { getTranslatedText } from '@/hooks/useTranslateContent';
 import { format } from 'date-fns';
 
@@ -16,6 +17,7 @@ const gradients = [
 export const PromotionsCarousel = () => {
   const { data: promotions = [], isLoading } = useActivePromotions();
   const { language } = useApp();
+  const { enquire, isSubmitting } = useEnquire();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [autoPlay, setAutoPlay] = useState(true);
   const [selectedPromo, setSelectedPromo] = useState<any>(null);
@@ -99,13 +101,21 @@ export const PromotionsCarousel = () => {
                     {getText('वैध:', 'वैध:', 'Valid:')} {format(new Date(selectedPromo.valid_until), 'dd MMM yyyy')} {getText('पर्यंत', 'तक', '')}
                   </p>
                 )}
-                <div className="flex gap-3">
-                  <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-full font-medium text-sm">
-                    <MessageCircle className="w-4 h-4" /> {getText('WhatsApp शेअर', 'WhatsApp शेयर', 'Share WhatsApp')}
+                <div className="flex flex-col gap-2">
+                  <button onClick={() => enquire({ sourceType: 'promotion', sourceId: selectedPromo.id, sourceTitle: selectedPromo.title })}
+                    disabled={isSubmitting}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-harvest-gold to-sunrise-orange text-white rounded-full font-semibold text-sm disabled:opacity-50">
+                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingBag className="w-4 h-4" />}
+                    {getText('चौकशी करा', 'पूछताछ करें', 'Enquire Now')}
                   </button>
-                  <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-muted text-foreground rounded-full font-medium text-sm">
-                    <Phone className="w-4 h-4" /> {getText('विक्रेता संपर्क', 'विक्रेता संपर्क', 'Contact Dealer')}
-                  </button>
+                  <div className="flex gap-3">
+                    <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-full font-medium text-sm">
+                      <MessageCircle className="w-4 h-4" /> {getText('WhatsApp शेअर', 'WhatsApp शेयर', 'Share WhatsApp')}
+                    </button>
+                    <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-muted text-foreground rounded-full font-medium text-sm">
+                      <Phone className="w-4 h-4" /> {getText('विक्रेता संपर्क', 'विक्रेता संपर्क', 'Contact Dealer')}
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>
