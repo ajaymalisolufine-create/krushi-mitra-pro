@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Megaphone, Newspaper, Tag, ExternalLink, Calendar, X, Clock, MessageCircle, Phone } from 'lucide-react';
+import { Bell, Megaphone, Newspaper, Tag, ExternalLink, Calendar, X, Clock, MessageCircle, Phone, ShoppingBag, Loader2 } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { usePublishedNews } from '@/hooks/useNews';
 import { useActivePromotions } from '@/hooks/usePromotions';
 import { useApp } from '@/contexts/AppContext';
+import { useEnquire } from '@/hooks/useEnquire';
 import { format } from 'date-fns';
 
 const translations = {
@@ -53,7 +54,9 @@ type TabType = 'notifications' | 'news' | 'offers';
 
 export const NotificationsScreen = () => {
   const { language } = useApp();
+  const { enquire, isSubmitting: isEnquiring } = useEnquire();
   const t = translations[language as keyof typeof translations] || translations.en;
+  const enquireLabel = language === 'mr' ? 'चौकशी करा' : language === 'hi' ? 'पूछताछ करें' : 'Enquire Now';
   
   const { data: notifications = [] } = useNotifications();
   const { data: news = [] } = usePublishedNews();
@@ -105,7 +108,7 @@ export const NotificationsScreen = () => {
               </div>
               <h2 className="text-lg font-bold mb-2">{selectedNotification._displayTitle || selectedNotification.title}</h2>
               <p className="text-muted-foreground mb-4">{selectedNotification._displayMessage || selectedNotification.message}</p>
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <p className="text-xs text-muted-foreground flex items-center gap-1 mb-4">
                 <Calendar className="w-3 h-3" />
                 {selectedNotification.sent_at
                   ? format(new Date(selectedNotification.sent_at), 'dd MMM yyyy, hh:mm a')
@@ -113,6 +116,12 @@ export const NotificationsScreen = () => {
                     ? format(new Date(selectedNotification.scheduled_at), 'dd MMM yyyy, hh:mm a')
                     : format(new Date(selectedNotification.created_at), 'dd MMM yyyy, hh:mm a')}
               </p>
+              <button onClick={() => enquire({ sourceType: 'offer', sourceId: selectedNotification.id, sourceTitle: selectedNotification._displayTitle || selectedNotification.title })}
+                disabled={isEnquiring}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-harvest-gold to-sunrise-orange text-white rounded-full font-semibold text-sm disabled:opacity-50">
+                {isEnquiring ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingBag className="w-4 h-4" />}
+                {enquireLabel}
+              </button>
             </motion.div>
           </motion.div>
         )}
@@ -149,7 +158,7 @@ export const NotificationsScreen = () => {
                 </div>
                 <h2 className="text-lg font-bold mb-3">{selectedNews.title}</h2>
                 {selectedNews.content && <p className="text-muted-foreground mb-4">{selectedNews.content}</p>}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-4">
                   <p className="text-xs text-muted-foreground">{format(new Date(selectedNews.published_at), 'dd MMM yyyy')}</p>
                   {selectedNews.external_url && (
                     <a href={selectedNews.external_url} target="_blank" rel="noopener noreferrer"
@@ -158,6 +167,12 @@ export const NotificationsScreen = () => {
                     </a>
                   )}
                 </div>
+                <button onClick={() => enquire({ sourceType: 'news', sourceId: selectedNews.id, sourceTitle: selectedNews.title })}
+                  disabled={isEnquiring}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-harvest-gold to-sunrise-orange text-white rounded-full font-semibold text-sm disabled:opacity-50">
+                  {isEnquiring ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingBag className="w-4 h-4" />}
+                  {enquireLabel}
+                </button>
               </div>
             </motion.div>
           </motion.div>
@@ -198,15 +213,23 @@ export const NotificationsScreen = () => {
                     {t.validUntil}: {format(new Date(selectedPromo.valid_until), 'dd MMM yyyy')}
                   </p>
                 )}
-                <div className="flex gap-3">
-                  <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-full font-medium text-sm">
-                    <MessageCircle className="w-4 h-4" />
-                    {t.whatsappShare}
+                <div className="flex flex-col gap-2">
+                  <button onClick={() => enquire({ sourceType: 'promotion', sourceId: selectedPromo.id, sourceTitle: selectedPromo.title })}
+                    disabled={isEnquiring}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-harvest-gold to-sunrise-orange text-white rounded-full font-semibold text-sm disabled:opacity-50">
+                    {isEnquiring ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingBag className="w-4 h-4" />}
+                    {enquireLabel}
                   </button>
-                  <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-muted text-foreground rounded-full font-medium text-sm">
-                    <Phone className="w-4 h-4" />
-                    {t.contactDealer}
-                  </button>
+                  <div className="flex gap-3">
+                    <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-full font-medium text-sm">
+                      <MessageCircle className="w-4 h-4" />
+                      {t.whatsappShare}
+                    </button>
+                    <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-muted text-foreground rounded-full font-medium text-sm">
+                      <Phone className="w-4 h-4" />
+                      {t.contactDealer}
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>

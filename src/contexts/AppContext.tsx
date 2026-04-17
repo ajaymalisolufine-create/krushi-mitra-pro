@@ -89,19 +89,27 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Load pincode from profile on auth
+  // Load pincode from profile on auth + stamp install/active timestamps
   useEffect(() => {
-    if (user?.id) {
-      supabase.from('user_profiles').select('pincode, state, name, city, district').eq('user_id', user.id).single().then(({ data }) => {
-        if (data) {
-          if (data.pincode) setPincode(data.pincode);
-          if (data.state) localStorage.setItem('user_state', data.state);
-          if (data.name) localStorage.setItem('user_name', data.name);
-          if (data.city) localStorage.setItem('user_city', data.city);
-          if (data.district) localStorage.setItem('user_district', data.district);
-        }
-      });
-    }
+    if (!user?.id) return;
+    (async () => {
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('pincode, state, name, city, district, first_install_at')
+        .eq('user_id', user.id)
+        .single();
+      if (data) {
+        if (data.pincode) setPincode(data.pincode);
+        if (data.state) localStorage.setItem('user_state', data.state);
+        if (data.name) localStorage.setItem('user_name', data.name);
+        if (data.city) localStorage.setItem('user_city', data.city);
+        if (data.district) localStorage.setItem('user_district', data.district);
+      }
+      const now = new Date().toISOString();
+      const updates: Record<string, string> = { last_active_at: now };
+      if (!data?.first_install_at) updates.first_install_at = now;
+      await supabase.from('user_profiles').update(updates).eq('user_id', user.id);
+    })();
   }, [user?.id]);
 
   // Legacy support for single crop selection

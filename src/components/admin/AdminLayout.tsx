@@ -18,6 +18,7 @@ import {
   Loader2,
   Image as ImageIcon,
   Activity,
+  ShoppingBag,
 } from 'lucide-react';
 import { AdminLogin } from './AdminLogin';
 import { AdminSetup } from './AdminSetup';
@@ -33,6 +34,7 @@ const menuItems = [
   { id: 'news', label: 'News', icon: Newspaper, path: '/admin/news' },
   { id: 'notifications', label: 'Notifications', icon: Bell, path: '/admin/notifications' },
   { id: 'dealers', label: 'Dealers', icon: MapPin, path: '/admin/dealers' },
+  { id: 'leads', label: 'Leads', icon: ShoppingBag, path: '/admin/leads' },
   { id: 'farmer-activity', label: 'Farmer Activity', icon: Activity, path: '/admin/farmer-activity' },
   { id: 'settings', label: 'Settings', icon: Settings, path: '/admin/settings' },
 ];

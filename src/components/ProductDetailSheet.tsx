@@ -1,9 +1,7 @@
-import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, MapPin, Package, Zap, Sparkles, Shield, Droplet, Leaf, ShoppingBag, Loader2 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useEnquire } from '@/hooks/useEnquire';
 import { getTranslatedText } from '@/hooks/useTranslateContent';
 import type { Product } from '@/hooks/useProducts';
 
@@ -35,8 +33,8 @@ interface ProductDetailSheetProps {
 }
 
 export const ProductDetailSheet = ({ product, onClose, onFindDealer }: ProductDetailSheetProps) => {
-  const { language, setActiveTab, user, phone, pincode, selectedCrops } = useApp();
-  const [isEnquiring, setIsEnquiring] = useState(false);
+  const { language, setActiveTab } = useApp();
+  const { enquire, isSubmitting: isEnquiring } = useEnquire();
 
   const getText = (mr: string, hi: string, en: string) => {
     switch (language) {
@@ -54,28 +52,13 @@ export const ProductDetailSheet = ({ product, onClose, onFindDealer }: ProductDe
 
   const handleEnquireNow = async () => {
     if (!product) return;
-    setIsEnquiring(true);
-    try {
-      const { error } = await supabase.from('product_enquiries').insert({
-        user_id: user?.id || null,
-        product_id: product.id,
-        product_name: product.name,
-        name: localStorage.getItem('user_name') || null,
-        phone: phone || null,
-        pincode: pincode || null,
-        city: localStorage.getItem('user_city') || null,
-        district: localStorage.getItem('user_district') || null,
-        state: localStorage.getItem('user_state') || null,
-        language,
-        selected_crops: selectedCrops.length > 0 ? selectedCrops : null,
-      });
-      if (error) throw error;
-      toast.success(getText('चौकशी नोंदवली!', 'पूछताछ दर्ज की गई!', 'Enquiry Submitted!'));
-    } catch (error: any) {
-      toast.error(getText('चौकशी अयशस्वी', 'पूछताछ विफल', 'Enquiry failed'));
-    } finally {
-      setIsEnquiring(false);
-    }
+    await enquire({
+      sourceType: 'product',
+      sourceId: product.id,
+      sourceTitle: product.name,
+      productId: product.id,
+      productName: product.name,
+    });
   };
 
   if (!product) return null;
