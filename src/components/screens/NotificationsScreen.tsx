@@ -6,6 +6,8 @@ import { usePublishedNews } from '@/hooks/useNews';
 import { useActivePromotions } from '@/hooks/usePromotions';
 import { useApp } from '@/contexts/AppContext';
 import { useEnquire } from '@/hooks/useEnquire';
+import { useTracker } from '@/hooks/useTracker';
+import { filterByState } from '@/lib/stateFilter';
 import { format } from 'date-fns';
 
 const translations = {
@@ -53,14 +55,19 @@ const translations = {
 type TabType = 'notifications' | 'news' | 'offers';
 
 export const NotificationsScreen = () => {
-  const { language } = useApp();
+  const { language, userState } = useApp();
   const { enquire, isSubmitting: isEnquiring } = useEnquire();
+  const { track } = useTracker();
   const t = translations[language as keyof typeof translations] || translations.en;
   const enquireLabel = language === 'mr' ? 'चौकशी करा' : language === 'hi' ? 'पूछताछ करें' : 'Enquire Now';
+  const noContentLabel = language === 'mr' ? 'या राज्यासाठी सामग्री उपलब्ध नाही' : language === 'hi' ? 'आपके राज्य के लिए कोई सामग्री उपलब्ध नहीं' : 'No content available for your state';
   
-  const { data: notifications = [] } = useNotifications();
-  const { data: news = [] } = usePublishedNews();
-  const { data: promotions = [] } = useActivePromotions();
+  const { data: notificationsRaw = [] } = useNotifications();
+  const { data: newsRaw = [] } = usePublishedNews();
+  const { data: promotionsRaw = [] } = useActivePromotions();
+  const notifications = filterByState(notificationsRaw as any[], userState);
+  const news = filterByState(newsRaw as any[], userState);
+  const promotions = filterByState(promotionsRaw as any[], userState);
 
   const [activeTab, setActiveTabRaw] = useState<TabType>('notifications');
   const setActiveTab = (tab: TabType) => {
@@ -293,7 +300,7 @@ export const NotificationsScreen = () => {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  onClick={() => setSelectedNotification({ ...notification, _displayTitle: displayTitle, _displayMessage: displayMessage })}
+                  onClick={() => { track('Notification', displayTitle || '-', { notificationId: notification.id }); setSelectedNotification({ ...notification, _displayTitle: displayTitle, _displayMessage: displayMessage }); }}
                   className="bg-card rounded-xl p-4 shadow-card border border-border/50 cursor-pointer hover:shadow-card-hover transition-all active:scale-[0.98]"
                 >
                   <div className="flex items-start gap-3">
@@ -339,7 +346,7 @@ export const NotificationsScreen = () => {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  onClick={() => setSelectedNews(item)}
+                  onClick={() => { track('News', item.title || '-', { newsId: item.id }); setSelectedNews(item); }}
                   className="bg-card rounded-xl overflow-hidden shadow-card border border-border/50 cursor-pointer hover:shadow-card-hover transition-all active:scale-[0.98]"
                 >
                   {item.image_url && (
