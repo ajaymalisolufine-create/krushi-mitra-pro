@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Star, Loader2, Check, Filter } from 'lucide-react';
 import { useProducts, type Product } from '@/hooks/useProducts';
 import { useApp } from '@/contexts/AppContext';
+import { useTracker } from '@/hooks/useTracker';
 import { ProductDetailSheet } from './ProductDetailSheet';
 import { allIndianCrops, getCropLabel, buildCropMapping } from '@/lib/crops';
 
@@ -17,7 +18,8 @@ const categories = [
 
 export const ProductsGrid = () => {
   const { data: products = [], isLoading } = useProducts();
-  const { language, selectedCrops, setSelectedCrops, trackInteraction, userState } = useApp();
+  const { language, selectedCrops, setSelectedCrops, userState } = useApp();
+  const { track } = useTracker();
   const [activeCategory, setActiveCategory] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showCropFilter, setShowCropFilter] = useState(false);
@@ -63,7 +65,7 @@ export const ProductsGrid = () => {
     });
 
   const handleProductClick = async (product: Product) => {
-    await trackInteraction('products', 'view_product', { productId: product.id, productName: product.name });
+    await track('Product View', product.name, { productId: product.id });
     setSelectedProduct(product);
   };
 
