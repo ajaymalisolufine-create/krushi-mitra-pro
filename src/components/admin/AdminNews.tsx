@@ -5,6 +5,7 @@ import { useNews, useCreateNews, useUpdateNews, useDeleteNews, type News } from 
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { useTranslateContent } from '@/hooks/useTranslateContent';
 import { TranslationPreview } from './TranslationPreview';
+import { StateMultiSelect } from './StateMultiSelect';
 import { format } from 'date-fns';
 
 export const AdminNews = () => {
@@ -30,6 +31,7 @@ export const AdminNews = () => {
     video_url: '',
     external_url: '',
     translations: {} as Record<string, { title: string; message: string }>,
+    available_states: [] as string[],
   });
 
   const getCategoryColor = (category: string | null) => {
@@ -59,6 +61,7 @@ export const AdminNews = () => {
       video_url: (item as any).video_url || '',
       external_url: item.external_url || '',
       translations: (item as any).translations || {},
+      available_states: (item as any).available_states || [],
     });
     setShowModal(true);
   };
@@ -67,7 +70,7 @@ export const AdminNews = () => {
     setEditingNews(null);
     setFormData({
       title: '', content: '', source: '', category: 'general', status: 'published',
-      image_url: '', video_url: '', external_url: '', translations: {},
+      image_url: '', video_url: '', external_url: '', translations: {}, available_states: [],
     });
     setShowModal(true);
   };
@@ -107,6 +110,7 @@ export const AdminNews = () => {
       status: formData.status,
       published_at: new Date().toISOString(),
       translations: Object.keys(formData.translations).length > 0 ? formData.translations : null,
+      available_states: formData.available_states,
     };
 
     if (editingNews) {
@@ -269,6 +273,8 @@ export const AdminNews = () => {
                   <option value="draft">Draft</option>
                 </select>
               </div>
+
+              <StateMultiSelect value={formData.available_states} onChange={(s) => setFormData(prev => ({ ...prev, available_states: s }))} />
 
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-border hover:bg-muted transition-colors">Cancel</button>

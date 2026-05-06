@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { TrendingUp, Package, ChevronRight } from 'lucide-react';
 import { useProducts, type Product } from '@/hooks/useProducts';
 import { useApp } from '@/contexts/AppContext';
+import { useTracker } from '@/hooks/useTracker';
 import { ProductDetailSheet } from './ProductDetailSheet';
 
 const translations = {
@@ -13,7 +14,8 @@ const translations = {
 
 export const TrendingProducts = () => {
   const { data: products = [] } = useProducts();
-  const { language, setActiveTab, trackInteraction } = useApp();
+  const { language, setActiveTab } = useApp();
+  const { track } = useTracker();
   const t = translations[language as keyof typeof translations] || translations.en;
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   
@@ -30,7 +32,7 @@ export const TrendingProducts = () => {
     .slice(0, 4);
 
   const handleProductClick = async (product: Product) => {
-    await trackInteraction('trending_products', 'view_product', { productId: product.id, productName: product.name });
+    await track('Trending Product', product.name, { productId: product.id });
     setSelectedProduct(product);
   };
 

@@ -4,6 +4,8 @@ import { Tag, ChevronLeft, ChevronRight, MessageCircle, Phone, Clock, Loader2, X
 import { useActivePromotions } from '@/hooks/usePromotions';
 import { useApp } from '@/contexts/AppContext';
 import { useEnquire } from '@/hooks/useEnquire';
+import { useTracker } from '@/hooks/useTracker';
+import { filterByState } from '@/lib/stateFilter';
 import { getTranslatedText } from '@/hooks/useTranslateContent';
 import { format } from 'date-fns';
 
@@ -15,9 +17,11 @@ const gradients = [
 ];
 
 export const PromotionsCarousel = () => {
-  const { data: promotions = [], isLoading } = useActivePromotions();
-  const { language } = useApp();
+  const { data: allPromotions = [], isLoading } = useActivePromotions();
+  const { language, userState } = useApp();
   const { enquire, isSubmitting } = useEnquire();
+  const { track } = useTracker();
+  const promotions = filterByState(allPromotions as any[], userState);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [autoPlay, setAutoPlay] = useState(true);
   const [selectedPromo, setSelectedPromo] = useState<any>(null);
@@ -126,7 +130,7 @@ export const PromotionsCarousel = () => {
       <div className="flex items-center gap-2"><Tag className="w-5 h-5 text-primary" /><h2 className="text-lg font-semibold">{sectionTitle}</h2></div>
 
       <div className="relative">
-        <div className="overflow-hidden rounded-2xl cursor-pointer" onClick={() => setSelectedPromo(currentPromo)}>
+        <div className="overflow-hidden rounded-2xl cursor-pointer" onClick={() => { track('Offer', currentPromo.title || '-', { offerId: currentPromo.id }); setSelectedPromo(currentPromo); }}>
           <AnimatePresence mode="wait">
             <motion.div key={currentIndex} initial={{ opacity: 0, x: 100 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -100 }} transition={{ duration: 0.4 }}
               className={`bg-gradient-to-r ${bgGradient} p-6 text-white relative min-h-[200px]`}>
