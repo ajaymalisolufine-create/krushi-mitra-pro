@@ -4,6 +4,8 @@ import { Play, Eye, Clock, Filter, Video, X, ArrowLeft, ShoppingBag, Loader2 } f
 import { useActiveVideos } from '@/hooks/useVideos';
 import { useApp } from '@/contexts/AppContext';
 import { useEnquire } from '@/hooks/useEnquire';
+import { useTracker } from '@/hooks/useTracker';
+import { filterByState } from '@/lib/stateFilter';
 import { extractYouTubeId, getYouTubeEmbedUrl, getYouTubeWatchUrl } from '@/lib/youtube';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -35,12 +37,14 @@ const translations = {
 };
 
 export const VideosScreen = () => {
-  const { language, selectedCrops = [] } = useApp();
+  const { language, selectedCrops = [], userState } = useApp();
   const { enquire, isSubmitting: isEnquiring } = useEnquire();
+  const { track } = useTracker();
   const t = translations[language as keyof typeof translations] || translations.en;
   const enquireLabel = language === 'mr' ? 'चौकशी करा' : language === 'hi' ? 'पूछताछ करें' : 'Enquire Now';
-  
-  const { data: videos = [], isLoading } = useActiveVideos();
+
+  const { data: videosRaw = [], isLoading } = useActiveVideos();
+  const videos = filterByState(videosRaw as any[], userState);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
   const [activeVideoMeta, setActiveVideoMeta] = useState<{ id: string; title: string } | null>(null);
@@ -63,6 +67,7 @@ export const VideosScreen = () => {
   };
 
   const handleVideoClick = (video: typeof videos[0]) => {
+    track('Video', video.title || '-', { videoId: video.id });
     incrementViews(video);
     setActiveVideoMeta({ id: video.id, title: video.title });
     if (video.youtube_url) {

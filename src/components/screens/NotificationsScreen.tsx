@@ -383,7 +383,7 @@ export const NotificationsScreen = () => {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  onClick={() => setSelectedPromo(promo)}
+                  onClick={() => { track('Offer', promo.title || '-', { offerId: promo.id }); setSelectedPromo(promo); }}
                   className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl overflow-hidden shadow-card border border-primary/20 cursor-pointer hover:shadow-card-hover transition-all active:scale-[0.98]"
                 >
                   {promo.image_url && (
