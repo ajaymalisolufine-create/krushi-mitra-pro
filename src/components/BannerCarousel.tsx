@@ -3,10 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { useActiveBanners } from '@/hooks/useBanners';
 import { useApp } from '@/contexts/AppContext';
+import { useTracker } from '@/hooks/useTracker';
+import { filterByState } from '@/lib/stateFilter';
 
 export const BannerCarousel = () => {
-  const { data: banners = [], isLoading } = useActiveBanners();
-  const { setActiveTab } = useApp();
+  const { data: allBanners = [], isLoading } = useActiveBanners();
+  const { setActiveTab, userState } = useApp();
+  const { track } = useTracker();
+  const banners = filterByState(allBanners as any[], userState);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
 
@@ -33,9 +37,11 @@ export const BannerCarousel = () => {
     setTouchStart(null);
   }, [touchStart, banners.length]);
 
-  const handleBannerClick = (redirectType: string, redirectTarget: string | null) => {
+  const handleBannerClick = (banner: typeof banners[0]) => {
+    track('Banner', banner.title || '-', { bannerId: banner.id });
+    const redirectType = banner.redirect_type;
     if (!redirectType || redirectType === 'none') return;
-    
+
     const tabMap: Record<string, string> = {
       news: 'notifications',
       offers: 'notifications',
@@ -43,7 +49,7 @@ export const BannerCarousel = () => {
       videos: 'videos',
       products: 'products',
     };
-    
+
     const tab = tabMap[redirectType];
     if (tab) {
       setActiveTab(tab);
@@ -77,7 +83,7 @@ export const BannerCarousel = () => {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -80 }}
             transition={{ duration: 0.3 }}
-            onClick={() => handleBannerClick(currentBanner.redirect_type, currentBanner.redirect_target)}
+            onClick={() => handleBannerClick(currentBanner)}
             className="cursor-pointer relative"
           >
             <img
