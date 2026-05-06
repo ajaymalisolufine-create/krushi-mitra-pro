@@ -37,6 +37,7 @@ export type Database = {
       }
       banners: {
         Row: {
+          available_states: string[]
           created_at: string
           id: string
           image_url: string
@@ -49,6 +50,7 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          available_states?: string[]
           created_at?: string
           id?: string
           image_url: string
@@ -61,6 +63,7 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          available_states?: string[]
           created_at?: string
           id?: string
           image_url?: string
@@ -226,6 +229,7 @@ export type Database = {
       }
       news: {
         Row: {
+          available_states: string[]
           category: string | null
           content: string | null
           created_at: string
@@ -241,6 +245,7 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          available_states?: string[]
           category?: string | null
           content?: string | null
           created_at?: string
@@ -256,6 +261,7 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          available_states?: string[]
           category?: string | null
           content?: string | null
           created_at?: string
@@ -274,6 +280,7 @@ export type Database = {
       }
       notifications: {
         Row: {
+          available_states: string[]
           category: string | null
           created_at: string
           id: string
@@ -292,6 +299,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          available_states?: string[]
           category?: string | null
           created_at?: string
           id?: string
@@ -310,6 +318,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          available_states?: string[]
           category?: string | null
           created_at?: string
           id?: string
@@ -570,6 +579,7 @@ export type Database = {
       }
       promotions: {
         Row: {
+          available_states: string[]
           created_at: string
           description: string | null
           discount: string | null
@@ -585,6 +595,7 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          available_states?: string[]
           created_at?: string
           description?: string | null
           discount?: string | null
@@ -600,6 +611,7 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          available_states?: string[]
           created_at?: string
           description?: string | null
           discount?: string | null
@@ -693,6 +705,7 @@ export type Database = {
       }
       videos: {
         Row: {
+          available_states: string[]
           category: string | null
           created_at: string
           crop: string | null
@@ -707,6 +720,7 @@ export type Database = {
           youtube_url: string | null
         }
         Insert: {
+          available_states?: string[]
           category?: string | null
           created_at?: string
           crop?: string | null
@@ -721,6 +735,7 @@ export type Database = {
           youtube_url?: string | null
         }
         Update: {
+          available_states?: string[]
           category?: string | null
           created_at?: string
           crop?: string | null
