@@ -21,8 +21,11 @@ export const AppHeader = ({
     staleTime: 5 * 60 * 1000,
   });
 
-  return <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border/50">
-      <div className="flex items-center justify-between px-4 py-3 max-w-lg mx-auto">
+  return <header
+      className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border/50"
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+    >
+      <div className="flex items-center justify-between px-4 pt-4 pb-3 max-w-lg mx-auto">
         {/* Logo */}
         <motion.div initial={{
         opacity: 0,
