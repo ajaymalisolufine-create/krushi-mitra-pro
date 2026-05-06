@@ -11,6 +11,7 @@ interface EnquireParams {
   sourceTitle: string;
   productId?: string | null;
   productName?: string | null;
+  trackScreen?: 'Product Enquiry' | 'Offer' | 'News' | 'Video';
 }
 
 const successMsg: Record<string, string> = {
@@ -52,11 +53,20 @@ export const useEnquire = () => {
       const { error } = await supabase.from('product_enquiries').insert(payload);
       if (error) throw error;
 
-      // Activity log for analytics
-      await trackInteraction(`${params.sourceType}_detail`, 'enquire_now', {
+      // Activity log for analytics — standardized screen name
+      const screen =
+        params.trackScreen ||
+        (params.sourceType === 'product'
+          ? 'Product Enquiry'
+          : params.sourceType === 'promotion' || params.sourceType === 'offer'
+          ? 'Offer'
+          : params.sourceType === 'news'
+          ? 'News'
+          : 'Video');
+      await trackInteraction(screen, screen, {
+        title: params.sourceTitle,
         source_type: params.sourceType,
         source_id: params.sourceId,
-        title: params.sourceTitle,
       });
 
       toast.success(successMsg[language] || successMsg.en);
