@@ -58,6 +58,7 @@ export const ProductDetailSheet = ({ product, onClose, onFindDealer }: ProductDe
       sourceTitle: product.name,
       productId: product.id,
       productName: product.name,
+      trackScreen: 'Product Enquiry',
     });
   };
 
