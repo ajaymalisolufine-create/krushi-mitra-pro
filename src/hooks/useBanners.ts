@@ -10,6 +10,7 @@ export interface Banner {
   redirect_target: string | null;
   is_enabled: boolean;
   sort_order: number;
+  available_states: string[];
   created_at: string;
   updated_at: string;
 }
