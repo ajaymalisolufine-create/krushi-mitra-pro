@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Plus, Edit2, Trash2, PlayCircle, Eye, Link, Loader2 } from 'lucide-react';
 import { useVideos, useCreateVideo, useUpdateVideo, useDeleteVideo, type Video } from '@/hooks/useVideos';
 import { extractYouTubeId } from '@/lib/youtube';
+import { StateMultiSelect } from './StateMultiSelect';
 
 export const AdminVideos = () => {
   const { data: videos = [], isLoading } = useVideos();
@@ -21,6 +22,7 @@ export const AdminVideos = () => {
     category: 'general',
     crop: '',
     status: 'active',
+    available_states: [] as string[],
   });
 
   const handleDelete = (id: string) => {
@@ -37,6 +39,7 @@ export const AdminVideos = () => {
       category: video.category || 'general',
       crop: video.crop || '',
       status: video.status,
+      available_states: (video as any).available_states || [],
     });
     setShowModal(true);
   };
@@ -49,6 +52,7 @@ export const AdminVideos = () => {
       category: 'general',
       crop: '',
       status: 'active',
+      available_states: [],
     });
     setShowModal(true);
   };
@@ -56,7 +60,7 @@ export const AdminVideos = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const videoData = {
+    const videoData: any = {
       title: formData.title,
       youtube_url: formData.youtube_url || null,
       video_url: null,
@@ -66,6 +70,7 @@ export const AdminVideos = () => {
       duration: null,
       views: 0,
       status: formData.status,
+      available_states: formData.available_states,
     };
 
     if (editingVideo) {
@@ -239,6 +244,7 @@ export const AdminVideos = () => {
                   />
                 </div>
               </div>
+              <StateMultiSelect value={formData.available_states} onChange={(s) => setFormData({ ...formData, available_states: s })} />
               <div>
                 <label className="block text-sm font-medium mb-1">Status</label>
                 <select

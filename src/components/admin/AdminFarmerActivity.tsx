@@ -26,17 +26,17 @@ interface ProfileLite {
 
 const SCREEN_TYPES = [
   { key: 'all', label: 'All Screens' },
-  { key: 'product_view', label: 'Product View' },
-  { key: 'product_enquiry', label: 'Product Enquiry' },
-  { key: 'promotion_view', label: 'Promotion' },
-  { key: 'offer_click', label: 'Offer Click' },
-  { key: 'banner_click', label: 'Banner Click' },
-  { key: 'news_view', label: 'News View' },
-  { key: 'video_view', label: 'Video View' },
-  { key: 'search', label: 'Search' },
-  { key: 'section_visit', label: 'Section Visit' },
-  { key: 'login_success', label: 'Login' },
-  { key: 'otp_sent', label: 'OTP Sent' },
+  { key: 'Browsing', label: 'Browsing' },
+  { key: 'Banner', label: 'Banner' },
+  { key: 'Image', label: 'Image' },
+  { key: 'News', label: 'News' },
+  { key: 'Offer', label: 'Offer' },
+  { key: 'Notification', label: 'Notification' },
+  { key: 'Video', label: 'Video' },
+  { key: 'Product View', label: 'Product View' },
+  { key: 'Product Enquiry', label: 'Product Enquiry' },
+  { key: 'Trending Product', label: 'Trending Product' },
+  { key: 'Best Selling Product', label: 'Best Selling Product' },
 ];
 
 // Pull a user-friendly title from activity_data (no descriptions)
@@ -73,7 +73,7 @@ export const AdminFarmerActivity = () => {
         .order('created_at', { ascending: false })
         .limit(1000);
 
-      if (screenFilter !== 'all') query = query.eq('activity_type', screenFilter);
+      if (screenFilter !== 'all') query = query.eq('screen_name', screenFilter);
       if (dateFrom) query = query.gte('created_at', `${dateFrom}T00:00:00`);
       if (dateTo) query = query.lte('created_at', `${dateTo}T23:59:59`);
 

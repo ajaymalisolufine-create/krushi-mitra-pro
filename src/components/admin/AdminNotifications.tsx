@@ -4,6 +4,7 @@ import { Plus, Send, Bell, Users, MapPin, Grape, Clock, Trash2, Loader2, CheckCi
 import { useNotifications, useCreateNotification, useUpdateNotification, useDeleteNotification, type Notification } from '@/hooks/useNotifications';
 import { useTranslateContent } from '@/hooks/useTranslateContent';
 import { TranslationPreview } from './TranslationPreview';
+import { StateMultiSelect } from './StateMultiSelect';
 import { format } from 'date-fns';
 
 const CATEGORY_OPTIONS = [
@@ -27,6 +28,7 @@ export const AdminNotifications = () => {
     scheduled_at: '', category: 'update', redirect_target: '', image_url: '',
     popup_enabled: false, push_enabled: false,
     translations: {} as Record<string, { title: string; message: string }>,
+    available_states: [] as string[],
   });
 
   const getStatusColor = (status: string) => {
@@ -68,7 +70,7 @@ export const AdminNotifications = () => {
     setFormData({
       title: '', message: '', target_type: 'all', target_value: 'All',
       scheduled_at: '', category: 'update', redirect_target: '', image_url: '',
-      popup_enabled: false, push_enabled: false, translations: {},
+      popup_enabled: false, push_enabled: false, translations: {}, available_states: [],
     });
     setShowModal(true);
   };
@@ -104,6 +106,7 @@ export const AdminNotifications = () => {
       popup_enabled: formData.popup_enabled,
       push_enabled: formData.push_enabled,
       translations: Object.keys(formData.translations).length > 0 ? formData.translations : null,
+      available_states: formData.available_states,
     } as any, {
       onSuccess: () => setShowModal(false),
     });
@@ -275,6 +278,8 @@ export const AdminNotifications = () => {
                 <input type="datetime-local" value={formData.scheduled_at} onChange={e => setFormData({ ...formData, scheduled_at: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
+
+              <StateMultiSelect value={formData.available_states} onChange={(s) => setFormData({ ...formData, available_states: s })} />
 
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowModal(false)} disabled={isSaving} className="flex-1 px-4 py-2.5 rounded-xl border border-border hover:bg-muted transition-colors disabled:opacity-50">Cancel</button>

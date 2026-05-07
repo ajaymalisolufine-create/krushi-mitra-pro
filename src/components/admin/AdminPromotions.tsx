@@ -5,6 +5,7 @@ import { usePromotions, useCreatePromotion, useUpdatePromotion, useDeletePromoti
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { useTranslateContent } from '@/hooks/useTranslateContent';
 import { TranslationPreview } from './TranslationPreview';
+import { StateMultiSelect } from './StateMultiSelect';
 import { format } from 'date-fns';
 
 export const AdminPromotions = () => {
@@ -31,6 +32,7 @@ export const AdminPromotions = () => {
     valid_until: '',
     status: 'active',
     translations: {} as Record<string, { title: string; message: string }>,
+    available_states: [] as string[],
   });
 
   const getStatusColor = (status: string) => {
@@ -61,6 +63,7 @@ export const AdminPromotions = () => {
       valid_until: promo.valid_until ? format(new Date(promo.valid_until), 'yyyy-MM-dd') : '',
       status: promo.status,
       translations: (promo as any).translations || {},
+      available_states: (promo as any).available_states || [],
     });
     setShowModal(true);
   };
@@ -69,7 +72,7 @@ export const AdminPromotions = () => {
     setEditingPromotion(null);
     setFormData({
       title: '', description: '', discount: '', image_url: '', video_url: '', external_url: '',
-      valid_from: format(new Date(), 'yyyy-MM-dd'), valid_until: '', status: 'active', translations: {},
+      valid_from: format(new Date(), 'yyyy-MM-dd'), valid_until: '', status: 'active', translations: {}, available_states: [],
     });
     setShowModal(true);
   };
@@ -109,6 +112,7 @@ export const AdminPromotions = () => {
       valid_until: formData.valid_until ? new Date(formData.valid_until).toISOString() : null,
       status: formData.status,
       translations: Object.keys(formData.translations).length > 0 ? formData.translations : null,
+      available_states: formData.available_states,
     };
 
     if (editingPromotion) {
@@ -260,6 +264,8 @@ export const AdminPromotions = () => {
                     className="w-full px-4 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
                 </div>
               </div>
+
+              <StateMultiSelect value={formData.available_states} onChange={(s) => setFormData({ ...formData, available_states: s })} />
 
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-border hover:bg-muted transition-colors">Cancel</button>
