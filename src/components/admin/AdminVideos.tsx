@@ -244,6 +244,7 @@ export const AdminVideos = () => {
                   />
                 </div>
               </div>
+              <StateMultiSelect value={formData.available_states} onChange={(s) => setFormData({ ...formData, available_states: s })} />
               <div>
                 <label className="block text-sm font-medium mb-1">Status</label>
                 <select
