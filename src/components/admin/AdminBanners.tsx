@@ -4,6 +4,7 @@ import { Plus, Edit2, Trash2, Loader2, Upload, X, Image as ImageIcon, GripVertic
 import { useBanners, useCreateBanner, useUpdateBanner, useDeleteBanner, type Banner } from '@/hooks/useBanners';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { Switch } from '@/components/ui/switch';
+import { StateMultiSelect } from './StateMultiSelect';
 
 const REDIRECT_TYPES = [
   { value: 'none', label: 'No Redirect' },
@@ -33,11 +34,12 @@ export const AdminBanners = () => {
     redirect_target: '',
     is_enabled: true,
     sort_order: 0,
+    available_states: [] as string[],
   });
 
   const handleOpenCreate = () => {
     setEditing(null);
-    setFormData({ title: '', image_url: '', video_url: '', redirect_type: 'none', redirect_target: '', is_enabled: true, sort_order: banners.length });
+    setFormData({ title: '', image_url: '', video_url: '', redirect_type: 'none', redirect_target: '', is_enabled: true, sort_order: banners.length, available_states: [] });
     setShowModal(true);
   };
 
@@ -51,6 +53,7 @@ export const AdminBanners = () => {
       redirect_target: banner.redirect_target || '',
       is_enabled: banner.is_enabled,
       sort_order: banner.sort_order,
+      available_states: banner.available_states || [],
     });
     setShowModal(true);
   };
@@ -81,6 +84,7 @@ export const AdminBanners = () => {
       redirect_target: formData.redirect_target || null,
       is_enabled: formData.is_enabled,
       sort_order: formData.sort_order,
+      available_states: formData.available_states,
     };
 
     if (editing) {
@@ -198,6 +202,8 @@ export const AdminBanners = () => {
                     placeholder={formData.redirect_type === 'external' ? 'https://...' : 'Item ID or name'} />
                 </div>
               )}
+
+              <StateMultiSelect value={formData.available_states} onChange={(s) => setFormData({ ...formData, available_states: s })} />
 
               <div className="flex items-center gap-3">
                 <Switch checked={formData.is_enabled} onCheckedChange={checked => setFormData({ ...formData, is_enabled: checked })} />
