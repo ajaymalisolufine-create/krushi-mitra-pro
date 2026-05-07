@@ -265,6 +265,8 @@ export const AdminPromotions = () => {
                 </div>
               </div>
 
+              <StateMultiSelect value={formData.available_states} onChange={(s) => setFormData({ ...formData, available_states: s })} />
+
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-border hover:bg-muted transition-colors">Cancel</button>
                 <button type="submit" disabled={isSaving || isUploading}
