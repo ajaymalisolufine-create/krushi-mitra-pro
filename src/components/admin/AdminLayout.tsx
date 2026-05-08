@@ -19,6 +19,7 @@ import {
   Image as ImageIcon,
   Activity,
   ShoppingBag,
+  Users,
 } from 'lucide-react';
 import { AdminLogin } from './AdminLogin';
 import { AdminSetup } from './AdminSetup';
