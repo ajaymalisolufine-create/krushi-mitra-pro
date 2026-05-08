@@ -145,11 +145,7 @@ export const PromotionsCarousel = () => {
                 <div className="flex gap-3">
                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                     className="flex items-center gap-2 px-4 py-2 bg-white text-primary rounded-full font-medium text-sm shadow-lg">
-                    <MessageCircle className="w-4 h-4" /> {getText('WhatsApp शेअर', 'WhatsApp शेयर', 'Share')}
-                  </motion.button>
-                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                    className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-full font-medium text-sm">
-                    <Phone className="w-4 h-4" /> {getText('विक्रेता संपर्क', 'विक्रेता संपर्क', 'Contact')}
+                    <Tag className="w-4 h-4" /> {getText('ऑफर पहा', 'ऑफर देखें', 'View Offer')}
                   </motion.button>
                 </div>
               </div>
