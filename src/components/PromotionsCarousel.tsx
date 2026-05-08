@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Tag, ChevronLeft, ChevronRight, MessageCircle, Phone, Clock, Loader2, X, ShoppingBag } from 'lucide-react';
+import { Tag, ChevronLeft, ChevronRight, Clock, Loader2, X, ShoppingBag } from 'lucide-react';
 import { useActivePromotions } from '@/hooks/usePromotions';
 import { useApp } from '@/contexts/AppContext';
 import { useEnquire } from '@/hooks/useEnquire';
