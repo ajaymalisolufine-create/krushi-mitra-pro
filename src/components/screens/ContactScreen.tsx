@@ -1,13 +1,21 @@
 import { motion } from 'framer-motion';
-import { Phone, MapPin, Mail, MessageCircle, ExternalLink, Loader2, AlertCircle, LogOut } from 'lucide-react';
+import { Phone, MapPin, Mail, MessageCircle, ExternalLink, Loader2, AlertCircle, LogOut, Globe } from 'lucide-react';
 import { useDealersByPincode } from '@/hooks/useDealers';
 import { useApp } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
+import { useAppSettings, formatPhone } from '@/hooks/useAppSettings';
 
 export const ContactScreen = () => {
   const { language, trackInteraction, pincode, signOut } = useApp();
   const { data: dealers = [], isLoading } = useDealersByPincode(pincode);
+  const { data: settings = {} } = useAppSettings();
+  const companyName = settings.company_name || 'Solufine Agritech Pvt. Ltd.';
+  const officeAddress = settings.office_address || 'Miraj, Maharashtra 416410';
+  const contactPhone = settings.contact_phone || '+919175700256';
+  const whatsappPhone = settings.whatsapp_phone || settings.contact_phone || '+919175700256';
+  const supportEmail = settings.support_email || settings.admin_email || 'info@solufine.com';
+  const websiteUrl = settings.website_url || '';
   
   const getText = (mr: string, hi: string, en: string) => {
     switch (language) {
@@ -19,7 +27,8 @@ export const ContactScreen = () => {
 
   const handleCall = async (phone: string, dealerName: string) => {
     await trackInteraction('contact', 'call_dealer', { dealer: dealerName, phone });
-    window.open(`tel:${phone}`, '_self');
+    const num = formatPhone(phone);
+    window.location.href = `tel:+${num}`;
   };
 
   const handleWhatsApp = async (phone: string, dealerName: string) => {
@@ -29,7 +38,8 @@ export const ContactScreen = () => {
       'नमस्ते, मुझे सोल्युफाइन उत्पादों के बारे में जानकारी चाहिए।',
       'Hello, I would like information about Solufine products.'
     ));
-    window.open(`https://wa.me/${phone.replace(/\D/g, '')}?text=${message}`, '_blank');
+    const num = formatPhone(phone);
+    window.open(`https://wa.me/${num}?text=${message}`, '_blank', 'noopener');
   };
 
   const handleDirections = async (lat: number, lng: number, dealerName: string) => {
@@ -87,27 +97,33 @@ export const ContactScreen = () => {
         animate={{ opacity: 1, y: 0 }}
         className="bg-gradient-hero rounded-2xl p-5 text-white"
       >
-        <h2 className="font-semibold mb-3">Solufine Agritech Pvt. Ltd.</h2>
+        <h2 className="font-semibold mb-3">{companyName}</h2>
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4" />
-            <span>Miraj, Maharashtra 416410</span>
+            <span>{officeAddress}</span>
           </div>
           <div className="flex items-center gap-2">
             <Phone className="w-4 h-4" />
-            <span>+91 9876543210</span>
+            <a href={`tel:+${formatPhone(contactPhone)}`} className="underline">{contactPhone}</a>
           </div>
           <div className="flex items-center gap-2">
             <Mail className="w-4 h-4" />
-            <span>info@solufine.com</span>
+            <a href={`mailto:${supportEmail}`} className="underline">{supportEmail}</a>
           </div>
+          {websiteUrl && (
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              <a href={websiteUrl} target="_blank" rel="noopener noreferrer" className="underline">{websiteUrl}</a>
+            </div>
+          )}
         </div>
         <div className="flex gap-2 mt-4">
           <Button
             size="sm"
             variant="secondary"
             className="flex-1 bg-white/20 hover:bg-white/30 text-white border-0"
-            onClick={() => handleCall('+919876543210', 'Solufine HQ')}
+            onClick={() => handleCall(contactPhone, 'Company HQ')}
           >
             <Phone className="w-4 h-4 mr-1" />
             {getText('कॉल', 'कॉल', 'Call')}
@@ -116,7 +132,7 @@ export const ContactScreen = () => {
             size="sm"
             variant="secondary"
             className="flex-1 bg-white/20 hover:bg-white/30 text-white border-0"
-            onClick={() => handleWhatsApp('+919876543210', 'Solufine HQ')}
+            onClick={() => handleWhatsApp(whatsappPhone, 'Company HQ')}
           >
             <MessageCircle className="w-4 h-4 mr-1" />
             WhatsApp

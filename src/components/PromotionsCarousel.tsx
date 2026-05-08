@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Tag, ChevronLeft, ChevronRight, MessageCircle, Phone, Clock, Loader2, X, ShoppingBag } from 'lucide-react';
+import { Tag, ChevronLeft, ChevronRight, Clock, Loader2, X, ShoppingBag } from 'lucide-react';
 import { useActivePromotions } from '@/hooks/usePromotions';
 import { useApp } from '@/contexts/AppContext';
 import { useEnquire } from '@/hooks/useEnquire';
@@ -112,14 +112,6 @@ export const PromotionsCarousel = () => {
                     {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingBag className="w-4 h-4" />}
                     {getText('चौकशी करा', 'पूछताछ करें', 'Enquire Now')}
                   </button>
-                  <div className="flex gap-3">
-                    <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-full font-medium text-sm">
-                      <MessageCircle className="w-4 h-4" /> {getText('WhatsApp शेअर', 'WhatsApp शेयर', 'Share WhatsApp')}
-                    </button>
-                    <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-muted text-foreground rounded-full font-medium text-sm">
-                      <Phone className="w-4 h-4" /> {getText('विक्रेता संपर्क', 'विक्रेता संपर्क', 'Contact Dealer')}
-                    </button>
-                  </div>
                 </div>
               </div>
             </motion.div>
@@ -153,11 +145,7 @@ export const PromotionsCarousel = () => {
                 <div className="flex gap-3">
                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                     className="flex items-center gap-2 px-4 py-2 bg-white text-primary rounded-full font-medium text-sm shadow-lg">
-                    <MessageCircle className="w-4 h-4" /> {getText('WhatsApp शेअर', 'WhatsApp शेयर', 'Share')}
-                  </motion.button>
-                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                    className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-full font-medium text-sm">
-                    <Phone className="w-4 h-4" /> {getText('विक्रेता संपर्क', 'विक्रेता संपर्क', 'Contact')}
+                    <Tag className="w-4 h-4" /> {getText('ऑफर पहा', 'ऑफर देखें', 'View Offer')}
                   </motion.button>
                 </div>
               </div>
