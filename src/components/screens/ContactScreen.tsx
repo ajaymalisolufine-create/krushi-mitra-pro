@@ -97,27 +97,33 @@ export const ContactScreen = () => {
         animate={{ opacity: 1, y: 0 }}
         className="bg-gradient-hero rounded-2xl p-5 text-white"
       >
-        <h2 className="font-semibold mb-3">Solufine Agritech Pvt. Ltd.</h2>
+        <h2 className="font-semibold mb-3">{companyName}</h2>
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4" />
-            <span>Miraj, Maharashtra 416410</span>
+            <span>{officeAddress}</span>
           </div>
           <div className="flex items-center gap-2">
             <Phone className="w-4 h-4" />
-            <span>+91 9876543210</span>
+            <a href={`tel:+${formatPhone(contactPhone)}`} className="underline">{contactPhone}</a>
           </div>
           <div className="flex items-center gap-2">
             <Mail className="w-4 h-4" />
-            <span>info@solufine.com</span>
+            <a href={`mailto:${supportEmail}`} className="underline">{supportEmail}</a>
           </div>
+          {websiteUrl && (
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              <a href={websiteUrl} target="_blank" rel="noopener noreferrer" className="underline">{websiteUrl}</a>
+            </div>
+          )}
         </div>
         <div className="flex gap-2 mt-4">
           <Button
             size="sm"
             variant="secondary"
             className="flex-1 bg-white/20 hover:bg-white/30 text-white border-0"
-            onClick={() => handleCall('+919876543210', 'Solufine HQ')}
+            onClick={() => handleCall(contactPhone, 'Company HQ')}
           >
             <Phone className="w-4 h-4 mr-1" />
             {getText('कॉल', 'कॉल', 'Call')}
@@ -126,7 +132,7 @@ export const ContactScreen = () => {
             size="sm"
             variant="secondary"
             className="flex-1 bg-white/20 hover:bg-white/30 text-white border-0"
-            onClick={() => handleWhatsApp('+919876543210', 'Solufine HQ')}
+            onClick={() => handleWhatsApp(whatsappPhone, 'Company HQ')}
           >
             <MessageCircle className="w-4 h-4 mr-1" />
             WhatsApp
