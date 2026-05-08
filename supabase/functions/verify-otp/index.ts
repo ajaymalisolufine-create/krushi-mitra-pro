@@ -74,27 +74,38 @@ Deno.serve(async (req) => {
 
     // Create or get user using admin API
     let userId: string;
-    
-    // Check if user exists with this email
-    const { data: userList } = await supabaseAdmin.auth.admin.listUsers();
-    const existingUser = userList?.users?.find((u) => u.email === email);
 
-    if (existingUser) {
-      userId = existingUser.id;
-    } else {
-      // Create new user with email
-      const randomPassword = crypto.randomUUID();
-      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        email_confirm: true,
-        password: randomPassword,
-      });
-
-      if (createError) throw createError;
-      userId = newUser.user.id;
+    // Prefer matching by phone first (true unique identifier)
+    let existingProfile: any = null;
+    if (phone) {
+      const { data: pp } = await supabaseAdmin
+        .from("user_profiles")
+        .select("user_id, email")
+        .eq("phone", phone)
+        .maybeSingle();
+      if (pp) existingProfile = pp;
     }
 
-    // Upsert user profile
+    if (existingProfile?.user_id) {
+      userId = existingProfile.user_id;
+    } else {
+      const { data: userList } = await supabaseAdmin.auth.admin.listUsers();
+      const existingUser = userList?.users?.find((u) => u.email === email);
+      if (existingUser) {
+        userId = existingUser.id;
+      } else {
+        const randomPassword = crypto.randomUUID();
+        const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          email_confirm: true,
+          password: randomPassword,
+        });
+        if (createError) throw createError;
+        userId = newUser.user.id;
+      }
+    }
+
+    // Upsert user profile (merge by user_id)
     const { error: profileError } = await supabaseAdmin.from("user_profiles").upsert(
       {
         user_id: userId,
