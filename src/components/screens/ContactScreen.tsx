@@ -1,13 +1,21 @@
 import { motion } from 'framer-motion';
-import { Phone, MapPin, Mail, MessageCircle, ExternalLink, Loader2, AlertCircle, LogOut } from 'lucide-react';
+import { Phone, MapPin, Mail, MessageCircle, ExternalLink, Loader2, AlertCircle, LogOut, Globe } from 'lucide-react';
 import { useDealersByPincode } from '@/hooks/useDealers';
 import { useApp } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
+import { useAppSettings, formatPhone } from '@/hooks/useAppSettings';
 
 export const ContactScreen = () => {
   const { language, trackInteraction, pincode, signOut } = useApp();
   const { data: dealers = [], isLoading } = useDealersByPincode(pincode);
+  const { data: settings = {} } = useAppSettings();
+  const companyName = settings.company_name || 'Solufine Agritech Pvt. Ltd.';
+  const officeAddress = settings.office_address || 'Miraj, Maharashtra 416410';
+  const contactPhone = settings.contact_phone || '+919175700256';
+  const whatsappPhone = settings.whatsapp_phone || settings.contact_phone || '+919175700256';
+  const supportEmail = settings.support_email || settings.admin_email || 'info@solufine.com';
+  const websiteUrl = settings.website_url || '';
   
   const getText = (mr: string, hi: string, en: string) => {
     switch (language) {
