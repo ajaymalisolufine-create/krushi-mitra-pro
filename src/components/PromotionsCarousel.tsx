@@ -112,14 +112,6 @@ export const PromotionsCarousel = () => {
                     {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingBag className="w-4 h-4" />}
                     {getText('चौकशी करा', 'पूछताछ करें', 'Enquire Now')}
                   </button>
-                  <div className="flex gap-3">
-                    <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-full font-medium text-sm">
-                      <MessageCircle className="w-4 h-4" /> {getText('WhatsApp शेअर', 'WhatsApp शेयर', 'Share WhatsApp')}
-                    </button>
-                    <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-muted text-foreground rounded-full font-medium text-sm">
-                      <Phone className="w-4 h-4" /> {getText('विक्रेता संपर्क', 'विक्रेता संपर्क', 'Contact Dealer')}
-                    </button>
-                  </div>
                 </div>
               </div>
             </motion.div>
