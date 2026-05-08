@@ -73,6 +73,7 @@ const App = () => (
                 <Route path="settings" element={<AdminSettings />} />
                 <Route path="farmer-activity" element={<AdminFarmerActivity />} />
                 <Route path="leads" element={<AdminLeads />} />
+                <Route path="farmers" element={<AdminFarmers />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
