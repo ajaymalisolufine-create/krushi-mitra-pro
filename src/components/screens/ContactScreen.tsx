@@ -27,7 +27,8 @@ export const ContactScreen = () => {
 
   const handleCall = async (phone: string, dealerName: string) => {
     await trackInteraction('contact', 'call_dealer', { dealer: dealerName, phone });
-    window.open(`tel:${phone}`, '_self');
+    const num = formatPhone(phone);
+    window.location.href = `tel:+${num}`;
   };
 
   const handleWhatsApp = async (phone: string, dealerName: string) => {
@@ -37,7 +38,8 @@ export const ContactScreen = () => {
       'नमस्ते, मुझे सोल्युफाइन उत्पादों के बारे में जानकारी चाहिए।',
       'Hello, I would like information about Solufine products.'
     ));
-    window.open(`https://wa.me/${phone.replace(/\D/g, '')}?text=${message}`, '_blank');
+    const num = formatPhone(phone);
+    window.open(`https://wa.me/${num}?text=${message}`, '_blank', 'noopener');
   };
 
   const handleDirections = async (lat: number, lng: number, dealerName: string) => {
