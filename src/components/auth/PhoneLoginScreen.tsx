@@ -15,6 +15,25 @@ interface PhoneLoginScreenProps {
 
 type Step = 'phone' | 'form' | 'otp';
 
+const callEdgeFunction = async <T,>(functionName: string, body: Record<string, unknown>): Promise<T> => {
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${functionName}`;
+  const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload?.error) {
+    throw new Error(payload?.error || `Request failed with status ${response.status}`);
+  }
+  return payload as T;
+};
+
 export const PhoneLoginScreen = ({ onComplete }: PhoneLoginScreenProps) => {
   const { language, setPincode, trackInteraction } = useApp();
   const [step, setStep] = useState<Step>('phone');
@@ -110,8 +129,7 @@ export const PhoneLoginScreen = ({ onComplete }: PhoneLoginScreenProps) => {
     }
     setCheckingPhone(true);
     try {
-      const { data, error } = await supabase.functions.invoke('lookup-farmer', { body: { phone } });
-      if (error) throw error;
+      const data = await callEdgeFunction<{ exists?: boolean; profile?: any }>('lookup-farmer', { phone });
       if (data?.exists && data?.profile) {
         const p = data.profile;
         setIsExisting(true);
@@ -149,9 +167,7 @@ export const PhoneLoginScreen = ({ onComplete }: PhoneLoginScreenProps) => {
   const sendOtpInternal = async (toEmail: string) => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('send-otp', { body: { email: toEmail } });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      const data = await callEdgeFunction<{ success?: boolean; otp?: string; error?: string }>('send-otp', { email: toEmail });
       if (data?.otp) setGeneratedOtp(data.otp);
       await trackInteraction('phone_login', 'otp_sent', { phone, email: toEmail });
       setStep('otp');
@@ -195,21 +211,17 @@ export const PhoneLoginScreen = ({ onComplete }: PhoneLoginScreenProps) => {
     }
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('verify-otp', {
-        body: {
-          email,
-          otp,
-          name: name || null,
-          phone: phone ? `+91${phone}` : null,
-          pincode,
-          city: city || null,
-          district: district || null,
-          state: state || 'Maharashtra',
-          language,
-        },
+      const data = await callEdgeFunction<{ session?: { access_token: string; refresh_token: string }; user?: unknown; error?: string }>('verify-otp', {
+        email,
+        otp,
+        name: name || null,
+        phone: phone ? `+91${phone}` : null,
+        pincode,
+        city: city || null,
+        district: district || null,
+        state: state || 'Maharashtra',
+        language,
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
       if (data?.session) {
         await supabase.auth.setSession({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
       }
