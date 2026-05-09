@@ -137,7 +137,10 @@ export const PhoneLoginScreen = ({ onComplete }: PhoneLoginScreenProps) => {
         setStep('form');
       }
     } catch (e: any) {
-      toast({ title: getText('त्रुटी', 'त्रुटि', 'Error'), description: e.message || 'Lookup failed', variant: 'destructive' });
+      const msg = e?.message?.includes('Failed to send')
+        ? getText('सर्व्हरशी कनेक्ट होऊ शकले नाही. कृपया इंटरनेट तपासा.', 'सर्वर से कनेक्ट नहीं हो सका। कृपया इंटरनेट जांचें।', 'Could not reach server. Please check your internet and try again.')
+        : (e?.message || 'Lookup failed');
+      toast({ title: getText('त्रुटी', 'त्रुटि', 'Error'), description: msg, variant: 'destructive' });
     } finally {
       setCheckingPhone(false);
     }
