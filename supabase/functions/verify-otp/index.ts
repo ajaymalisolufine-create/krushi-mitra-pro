@@ -75,13 +75,17 @@ Deno.serve(async (req) => {
     // Create or get user using admin API
     let userId: string;
 
-    // Prefer matching by phone first (true unique identifier)
+    // Prefer matching by phone first (true unique identifier).
+    // Accept both E.164 (+91XXXXXXXXXX) and bare 10-digit formats.
     let existingProfile: any = null;
     if (phone) {
+      const tenDigit = String(phone).replace(/\D/g, "").slice(-10);
+      const e164 = `+91${tenDigit}`;
       const { data: pp } = await supabaseAdmin
         .from("user_profiles")
         .select("user_id, email")
-        .eq("phone", phone)
+        .or(`phone.eq.${e164},phone.eq.${tenDigit}`)
+        .limit(1)
         .maybeSingle();
       if (pp) existingProfile = pp;
     }
