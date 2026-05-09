@@ -6,6 +6,9 @@ verify_jwt = false
 [functions.verify-otp]
 verify_jwt = false
 
+[functions.lookup-farmer]
+verify_jwt = false
+
 [functions.admin-bootstrap]
 verify_jwt = false
 
