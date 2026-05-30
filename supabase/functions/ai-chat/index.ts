@@ -33,11 +33,71 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, language, selectedCrop } = await req.json();
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== 'object') {
+      return new Response(
+        JSON.stringify({ error: 'Invalid request body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { messages, language, selectedCrop } = body as {
+      messages?: unknown;
+      language?: unknown;
+      selectedCrop?: unknown;
+    };
+
+    // --- Input validation / sanitization ---
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid messages' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (messages.length > 30) {
+      return new Response(
+        JSON.stringify({ error: 'Too many messages' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const allowedRoles = new Set(['user', 'assistant']);
+    const sanitizedMessages = [];
+    for (const msg of messages) {
+      if (!msg || typeof msg !== 'object') {
+        return new Response(
+          JSON.stringify({ error: 'Invalid message format' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const { role, content } = msg as { role?: unknown; content?: unknown };
+      if (typeof role !== 'string' || !allowedRoles.has(role)) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid message role' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (typeof content !== 'string' || content.trim().length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid message content' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (content.length > 2000) {
+        return new Response(
+          JSON.stringify({ error: 'Message too long' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      sanitizedMessages.push({ role, content: content.slice(0, 2000) });
+    }
+
+    const safeLanguage = language === 'mr' || language === 'hi' || language === 'en' ? language : 'mr';
+    const safeCrop = typeof selectedCrop === 'string' ? selectedCrop.replace(/[\n\r]/g, ' ').slice(0, 60) : '';
 
     const systemMessage = {
       role: 'system',
-      content: SYSTEM_PROMPT + (selectedCrop ? `\n\nThe user is primarily growing: ${selectedCrop}. Tailor advice to this crop when relevant.` : '') + `\n\nRespond in: ${language === 'mr' ? 'Marathi' : language === 'hi' ? 'Hindi' : 'English'}`,
+      content: SYSTEM_PROMPT + (safeCrop ? `\n\nThe user is primarily growing: ${safeCrop}. Tailor advice to this crop when relevant.` : '') + `\n\nRespond in: ${safeLanguage === 'mr' ? 'Marathi' : safeLanguage === 'hi' ? 'Hindi' : 'English'}`,
     };
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -48,7 +108,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'google/gemini-3-flash-preview',
-        messages: [systemMessage, ...messages],
+        messages: [systemMessage, ...sanitizedMessages],
         max_tokens: 500,
         temperature: 0.7,
       }),
@@ -68,10 +128,10 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    // Log full detail server-side only; return a generic message to the client.
     console.error('Error in ai-chat function:', error);
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'An error occurred. Please try again later.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

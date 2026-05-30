@@ -104,8 +104,8 @@ serve(async (req) => {
 
     return jsonResponse({ ok: true });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
+    // Log full detail server-side only; return a generic message to the client.
     console.error("admin-bootstrap error:", error);
-    return jsonResponse({ error: message }, 500);
+    return jsonResponse({ error: "An error occurred. Please try again later." }, 500);
   }
 });
