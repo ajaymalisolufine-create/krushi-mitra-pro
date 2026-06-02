@@ -66,12 +66,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Mark OTP as verified
-    await supabaseAdmin
-      .from("otp_codes")
-      .update({ verified: true })
-      .eq("id", otpRecord.id);
-
     // Create or get user using admin API
     let userId: string;
 
@@ -129,22 +123,37 @@ Deno.serve(async (req) => {
       console.error("Profile upsert error:", profileError);
     }
 
-    // Generate session by setting a temp password and signing in
-    const tempPassword = `otp_verified_${crypto.randomUUID()}`;
-    await supabaseAdmin.auth.admin.updateUserById(userId, { password: tempPassword });
+    // Generate session by setting a strong temporary password and signing in.
+    // Check the admin update result; otherwise auth policy failures surface later
+    // as the misleading "Invalid login credentials" error.
+    const randomBytes = new Uint8Array(24);
+    crypto.getRandomValues(randomBytes);
+    const tempPassword = `Agri-${btoa(String.fromCharCode(...randomBytes)).replace(/[^A-Za-z0-9]/g, "")}#9z`;
+    const { error: passwordError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      email,
+      email_confirm: true,
+      password: tempPassword,
+    });
+
+    if (passwordError) throw passwordError;
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!
     );
 
-    const { data: signInData, error: signInError } =
-      await supabaseClient.auth.signInWithPassword({
-        email,
-        password: tempPassword,
-      });
+    const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password: tempPassword,
+    });
 
     if (signInError) throw signInError;
+
+    // Mark OTP as verified only after a valid session is created.
+    await supabaseAdmin
+      .from("otp_codes")
+      .update({ verified: true })
+      .eq("id", otpRecord.id);
 
     return new Response(
       JSON.stringify({
