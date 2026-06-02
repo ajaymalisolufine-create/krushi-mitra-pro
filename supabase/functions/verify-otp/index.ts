@@ -124,16 +124,34 @@ Deno.serve(async (req) => {
     }
 
     // Generate session by setting a strong temporary password and signing in.
-    // Check the admin update result; otherwise auth policy failures surface later
-    // as the misleading "Invalid login credentials" error.
     const randomBytes = new Uint8Array(24);
     crypto.getRandomValues(randomBytes);
     const tempPassword = `Agri-${btoa(String.fromCharCode(...randomBytes)).replace(/[^A-Za-z0-9]/g, "")}#9z`;
-    const { error: passwordError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-      email,
+
+    // Determine the user's real auth email. When matched by phone, the entered
+    // email may belong to a DIFFERENT auth user — overwriting it would violate
+    // the unique email constraint ("Error updating user"). Only set the email
+    // when it is free (or already this user's); otherwise sign in with the
+    // user's existing email.
+    const { data: authUserData } = await supabaseAdmin.auth.admin.getUserById(userId);
+    let loginEmail = authUserData?.user?.email || email;
+
+    let emailTakenByOther = false;
+    if (email && email !== authUserData?.user?.email) {
+      const { data: userList2 } = await supabaseAdmin.auth.admin.listUsers();
+      emailTakenByOther = !!userList2?.users?.find((u) => u.email === email && u.id !== userId);
+    }
+
+    const updatePayload: Record<string, unknown> = {
       email_confirm: true,
       password: tempPassword,
-    });
+    };
+    if (email && !emailTakenByOther) {
+      updatePayload.email = email;
+      loginEmail = email;
+    }
+
+    const { error: passwordError } = await supabaseAdmin.auth.admin.updateUserById(userId, updatePayload);
 
     if (passwordError) throw passwordError;
 
@@ -143,7 +161,7 @@ Deno.serve(async (req) => {
     );
 
     const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
-      email,
+      email: loginEmail,
       password: tempPassword,
     });
 
