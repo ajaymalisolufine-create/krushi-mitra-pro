@@ -66,12 +66,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Mark OTP as verified
-    await supabaseAdmin
-      .from("otp_codes")
-      .update({ verified: true })
-      .eq("id", otpRecord.id);
-
     // Create or get user using admin API
     let userId: string;
 
@@ -129,29 +123,36 @@ Deno.serve(async (req) => {
       console.error("Profile upsert error:", profileError);
     }
 
+    // Generate session by setting a strong temporary password and signing in.
+    // Check the admin update result; otherwise auth policy failures surface later
+    // as the misleading "Invalid login credentials" error.
+    const randomBytes = new Uint8Array(24);
+    crypto.getRandomValues(randomBytes);
+    const tempPassword = `Agri-${btoa(String.fromCharCode(...randomBytes)).replace(/[^A-Za-z0-9]/g, "")}#9z`;
+    const { error: passwordError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      email_confirm: true,
+      password: tempPassword,
+    });
+
+    if (passwordError) throw passwordError;
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!
     );
 
-    // Create a session without changing the user's password. The previous temp-password
-    // handoff could race or fail with "Invalid login credentials" on some auth nodes.
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: "magiclink",
+    const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
       email,
-    });
-
-    if (linkError) throw linkError;
-
-    const tokenHash = linkData?.properties?.hashed_token;
-    if (!tokenHash) throw new Error("Unable to create login session");
-
-    const { data: signInData, error: signInError } = await supabaseClient.auth.verifyOtp({
-      type: "magiclink",
-      token_hash: tokenHash,
+      password: tempPassword,
     });
 
     if (signInError) throw signInError;
+
+    // Mark OTP as verified only after a valid session is created.
+    await supabaseAdmin
+      .from("otp_codes")
+      .update({ verified: true })
+      .eq("id", otpRecord.id);
 
     return new Response(
       JSON.stringify({
