@@ -130,6 +130,7 @@ Deno.serve(async (req) => {
     crypto.getRandomValues(randomBytes);
     const tempPassword = `Agri-${btoa(String.fromCharCode(...randomBytes)).replace(/[^A-Za-z0-9]/g, "")}#9z`;
     const { error: passwordError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      email,
       email_confirm: true,
       password: tempPassword,
     });
