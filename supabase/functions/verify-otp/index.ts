@@ -129,20 +129,27 @@ Deno.serve(async (req) => {
       console.error("Profile upsert error:", profileError);
     }
 
-    // Generate session by setting a temp password and signing in
-    const tempPassword = `otp_verified_${crypto.randomUUID()}`;
-    await supabaseAdmin.auth.admin.updateUserById(userId, { password: tempPassword });
-
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!
     );
 
-    const { data: signInData, error: signInError } =
-      await supabaseClient.auth.signInWithPassword({
-        email,
-        password: tempPassword,
-      });
+    // Create a session without changing the user's password. The previous temp-password
+    // handoff could race or fail with "Invalid login credentials" on some auth nodes.
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+    });
+
+    if (linkError) throw linkError;
+
+    const tokenHash = linkData?.properties?.hashed_token;
+    if (!tokenHash) throw new Error("Unable to create login session");
+
+    const { data: signInData, error: signInError } = await supabaseClient.auth.verifyOtp({
+      type: "magiclink",
+      token_hash: tokenHash,
+    });
 
     if (signInError) throw signInError;
 
