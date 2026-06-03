@@ -70,7 +70,29 @@ export const AdminSettings = () => {
     }
   };
 
+  const SMS_KEYS: (keyof PlatformSettings)[] = ['sms_enabled', 'msg91_auth_key', 'msg91_template_id', 'msg91_sender_id'];
+
+  const handleSaveSms = async () => {
+    setSavingSms(true);
+    try {
+      for (const key of SMS_KEYS) {
+        const value = (form[key] ?? '') as string;
+        if ((settings[key] ?? '') !== value) {
+          await upsert.mutateAsync({ key, value });
+        }
+      }
+      toast.success('SMS settings saved — OTP delivery updated');
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to save SMS settings');
+    } finally {
+      setSavingSms(false);
+    }
+  };
+
+  const smsEnabled = (form.sms_enabled ?? '') === 'true';
+
   const currentLogo = settings.company_logo || '';
+
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
