@@ -167,22 +167,38 @@ export const PhoneLoginScreen = ({ onComplete }: PhoneLoginScreenProps) => {
   const sendOtpInternal = async (toEmail: string) => {
     setIsLoading(true);
     try {
-      const data = await callEdgeFunction<{ success?: boolean; otp?: string; error?: string }>('send-otp', { email: toEmail });
+      const data = await callEdgeFunction<{ success?: boolean; otp?: string; sms_sent?: boolean; error?: string }>(
+        'send-otp',
+        { email: toEmail, phone: phone ? `+91${phone}` : null }
+      );
       if (data?.otp) setGeneratedOtp(data.otp);
-      await trackInteraction('phone_login', 'otp_sent', { phone, email: toEmail });
+      await trackInteraction('phone_login', 'otp_sent', { phone, email: toEmail, sms: !!data?.sms_sent });
       setStep('otp');
       setResendTimer(60);
-      toast({
-        title: getText('OTP तयार झाला', 'OTP तैयार हुआ', 'OTP Generated'),
-        description: getText(`तुमचा 6 अंकी OTP: ${data?.otp || ''}`, `आपका 6 अंकी OTP: ${data?.otp || ''}`, `Your 6-digit OTP: ${data?.otp || ''}`),
-        duration: 30000,
-      });
+      if (data?.sms_sent) {
+        toast({
+          title: getText('OTP पाठवला', 'OTP भेजा गया', 'OTP Sent'),
+          description: getText(
+            `तुमच्या मोबाइलवर 6 अंकी OTP पाठवला: +91${phone}`,
+            `आपके मोबाइल पर 6 अंकी OTP भेजा गया: +91${phone}`,
+            `A 6-digit OTP was sent to your mobile: +91${phone}`
+          ),
+          duration: 8000,
+        });
+      } else {
+        toast({
+          title: getText('OTP तयार झाला', 'OTP तैयार हुआ', 'OTP Generated'),
+          description: getText(`तुमचा 6 अंकी OTP: ${data?.otp || ''}`, `आपका 6 अंकी OTP: ${data?.otp || ''}`, `Your 6-digit OTP: ${data?.otp || ''}`),
+          duration: 30000,
+        });
+      }
     } catch (e: any) {
       toast({ title: getText('त्रुटी', 'त्रुटि', 'Error'), description: e.message || 'Failed to send OTP', variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
   };
+
 
   const isFormValid =
     name.trim().length > 0 &&
