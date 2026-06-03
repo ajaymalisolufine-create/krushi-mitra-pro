@@ -15,6 +15,11 @@ export type PlatformSettings = {
   social_youtube?: string;
   social_twitter?: string;
   company_logo?: string;
+  // SMS / OTP provider (MSG91) — stored in DB, editable from Admin Settings
+  sms_enabled?: string;
+  msg91_auth_key?: string;
+  msg91_template_id?: string;
+  msg91_sender_id?: string;
 };
 
 export const useAppSettings = () => {
