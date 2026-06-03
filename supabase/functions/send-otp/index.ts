@@ -6,13 +6,61 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+/**
+ * Send the OTP over SMS using MSG91 (low-cost India provider).
+ * Credentials are stored in the app_settings table (editable from Admin Settings),
+ * NOT in Lovable secrets, so the admin can update them manually any time.
+ * Returns true only when MSG91 accepts the request.
+ */
+async function sendViaMsg91(
+  authKey: string,
+  templateId: string,
+  senderId: string | null,
+  phone: string,
+  otp: string,
+): Promise<{ ok: boolean; detail?: unknown }> {
+  const mobile = `91${String(phone).replace(/\D/g, "").slice(-10)}`;
+  try {
+    const res = await fetch("https://control.msg91.com/api/v5/flow/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        accept: "application/json",
+        authkey: authKey,
+      },
+      body: JSON.stringify({
+        template_id: templateId,
+        short_url: "0",
+        ...(senderId ? { sender: senderId } : {}),
+        recipients: [
+          {
+            mobiles: mobile,
+            // Common variable names used in MSG91 OTP templates.
+            // Map the one your DLT template actually uses (e.g. ##otp##).
+            otp,
+            OTP: otp,
+            var1: otp,
+          },
+        ],
+      }),
+    });
+    const detail = await res.json().catch(() => ({}));
+    const ok = res.ok && (detail?.type ? detail.type !== "error" : true);
+    if (!ok) console.error("MSG91 send failed:", JSON.stringify(detail));
+    return { ok, detail };
+  } catch (e) {
+    console.error("MSG91 request error:", e);
+    return { ok: false, detail: String(e) };
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { email } = await req.json();
+    const { email, phone } = await req.json();
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return new Response(
@@ -48,22 +96,47 @@ Deno.serve(async (req) => {
     // Store OTP
     const { error: insertError } = await supabaseAdmin.from("otp_codes").insert({
       email,
-      phone: email, // backward compat - phone column stores identifier
+      phone: phone || email, // backward compat - phone column stores identifier
       otp_code: otp,
       expires_at: expiresAt,
     });
 
     if (insertError) throw insertError;
 
-    console.log(`[OTP] Generated OTP ${otp} for ${email}`);
+    // Load SMS provider config from app_settings (manually editable in Admin Settings)
+    let smsSent = false;
+    if (phone) {
+      const { data: rows } = await supabaseAdmin
+        .from("app_settings")
+        .select("key, value")
+        .in("key", ["sms_enabled", "msg91_auth_key", "msg91_template_id", "msg91_sender_id"]);
+
+      const cfg: Record<string, string> = {};
+      (rows || []).forEach((r: { key: string; value: string }) => { cfg[r.key] = r.value; });
+
+      const enabled = cfg.sms_enabled === "true" || cfg.sms_enabled === "1";
+      if (enabled && cfg.msg91_auth_key && cfg.msg91_template_id) {
+        const result = await sendViaMsg91(
+          cfg.msg91_auth_key,
+          cfg.msg91_template_id,
+          cfg.msg91_sender_id || null,
+          phone,
+          otp,
+        );
+        smsSent = result.ok;
+      }
+    }
+
+    console.log(`[OTP] Generated for ${email} (phone: ${phone || "n/a"}) — SMS sent: ${smsSent}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: "OTP sent to your email",
+        message: smsSent ? "OTP sent to your mobile number" : "OTP generated",
+        sms_sent: smsSent,
         expires_in: 300,
-        // Return OTP for the client to use (since email template shows magic link, not OTP code)
-        otp,
+        // Only expose the code when SMS delivery is NOT active (dev / fallback).
+        ...(smsSent ? {} : { otp }),
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

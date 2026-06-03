@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Save, UserPlus, Loader2, CheckCircle, Upload, X, Image as ImageIcon, Phone, Mail, Globe, MapPin, Building2, Facebook, Instagram, Youtube, Twitter } from 'lucide-react';
+import { Settings, Save, UserPlus, Loader2, CheckCircle, Upload, X, Image as ImageIcon, Phone, Mail, Globe, MapPin, Building2, Facebook, Instagram, Youtube, Twitter, MessageSquare, KeyRound, Hash } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { useAppSettings, useUpsertSetting, type PlatformSettings } from '@/hooks/useAppSettings';
@@ -28,6 +28,7 @@ export const AdminSettings = () => {
 
   const [form, setForm] = useState<PlatformSettings>({});
   const [savingAll, setSavingAll] = useState(false);
+  const [savingSms, setSavingSms] = useState(false);
 
   // Admin creation
   const [newAdminEmail, setNewAdminEmail] = useState('');
@@ -69,7 +70,29 @@ export const AdminSettings = () => {
     }
   };
 
+  const SMS_KEYS: (keyof PlatformSettings)[] = ['sms_enabled', 'msg91_auth_key', 'msg91_template_id', 'msg91_sender_id'];
+
+  const handleSaveSms = async () => {
+    setSavingSms(true);
+    try {
+      for (const key of SMS_KEYS) {
+        const value = (form[key] ?? '') as string;
+        if ((settings[key] ?? '') !== value) {
+          await upsert.mutateAsync({ key, value });
+        }
+      }
+      toast.success('SMS settings saved — OTP delivery updated');
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to save SMS settings');
+    } finally {
+      setSavingSms(false);
+    }
+  };
+
+  const smsEnabled = (form.sms_enabled ?? '') === 'true';
+
   const currentLogo = settings.company_logo || '';
+
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -177,6 +200,89 @@ export const AdminSettings = () => {
           </button>
         </div>
       </motion.div>
+
+      {/* SMS / OTP Provider (MSG91) */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+        className="bg-card rounded-2xl p-5 shadow-card border border-border/50">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center"><MessageSquare className="w-5 h-5 text-primary" /></div>
+          <div>
+            <h2 className="font-semibold">SMS OTP Provider (MSG91)</h2>
+            <p className="text-sm text-muted-foreground">Low-cost SMS OTP for India. Requires DLT-approved template.</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {/* Enable toggle */}
+          <label className="flex items-center justify-between gap-3 p-3 rounded-xl bg-muted border border-border cursor-pointer">
+            <div>
+              <p className="text-sm font-medium">Send OTP via SMS</p>
+              <p className="text-xs text-muted-foreground">When off, the OTP is shown on screen (fallback mode)</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={smsEnabled}
+              onChange={(e) => set('sms_enabled', e.target.checked ? 'true' : 'false')}
+              className="w-5 h-5 accent-primary"
+            />
+          </label>
+
+          <div>
+            <label className="text-sm font-medium mb-1 flex items-center gap-1.5">
+              <KeyRound className="w-3.5 h-3.5 text-muted-foreground" /> MSG91 Auth Key
+            </label>
+            <input
+              type="password"
+              autoComplete="off"
+              value={(form.msg91_auth_key ?? '') as string}
+              onChange={(e) => set('msg91_auth_key', e.target.value)}
+              placeholder="Your MSG91 auth key"
+              className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">Stored securely — visible to admins only.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium mb-1 flex items-center gap-1.5">
+                <Hash className="w-3.5 h-3.5 text-muted-foreground" /> Template ID
+              </label>
+              <input
+                type="text"
+                value={(form.msg91_template_id ?? '') as string}
+                onChange={(e) => set('msg91_template_id', e.target.value)}
+                placeholder="DLT-approved flow/template ID"
+                className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 flex items-center gap-1.5">
+                <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" /> Sender ID
+              </label>
+              <input
+                type="text"
+                value={(form.msg91_sender_id ?? '') as string}
+                onChange={(e) => set('msg91_sender_id', e.target.value)}
+                placeholder="e.g. SOLUFN (6 chars)"
+                className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+              />
+            </div>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Template variable for the code must map to <code className="px-1 rounded bg-muted">##otp##</code>.
+          </p>
+        </div>
+
+        <div className="flex justify-end mt-5">
+          <button onClick={handleSaveSms} disabled={savingSms} className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 disabled:opacity-50">
+            {savingSms ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Save SMS Settings
+          </button>
+        </div>
+      </motion.div>
+
+
 
       {/* Create Admin */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
