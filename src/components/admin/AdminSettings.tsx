@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Save, UserPlus, Loader2, CheckCircle, Upload, X, Image as ImageIcon, Phone, Mail, Globe, MapPin, Building2, Facebook, Instagram, Youtube, Twitter, MessageSquare, KeyRound, Hash } from 'lucide-react';
+import { Settings, Save, UserPlus, Loader2, CheckCircle, Upload, X, Image as ImageIcon, Phone, Mail, Globe, MapPin, Building2, Facebook, Instagram, Youtube, Twitter, MessageSquare, MessageCircle, KeyRound, Hash } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { useAppSettings, useUpsertSetting, type PlatformSettings } from '@/hooks/useAppSettings';
