@@ -20,6 +20,9 @@ export type PlatformSettings = {
   msg91_auth_key?: string;
   msg91_template_id?: string;
   msg91_sender_id?: string;
+  // WhatsApp OTP provider (MSG91 OTP API) — uses app_otp Template Code + same auth key
+  whatsapp_enabled?: string;
+  msg91_whatsapp_template_id?: string;
 };
 
 export const useAppSettings = () => {

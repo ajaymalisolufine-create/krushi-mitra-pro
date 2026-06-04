@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Save, UserPlus, Loader2, CheckCircle, Upload, X, Image as ImageIcon, Phone, Mail, Globe, MapPin, Building2, Facebook, Instagram, Youtube, Twitter, MessageSquare, KeyRound, Hash } from 'lucide-react';
+import { Settings, Save, UserPlus, Loader2, CheckCircle, Upload, X, Image as ImageIcon, Phone, Mail, Globe, MapPin, Building2, Facebook, Instagram, Youtube, Twitter, MessageSquare, MessageCircle, KeyRound, Hash } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { useAppSettings, useUpsertSetting, type PlatformSettings } from '@/hooks/useAppSettings';
@@ -29,6 +29,7 @@ export const AdminSettings = () => {
   const [form, setForm] = useState<PlatformSettings>({});
   const [savingAll, setSavingAll] = useState(false);
   const [savingSms, setSavingSms] = useState(false);
+  const [savingWa, setSavingWa] = useState(false);
 
   // Admin creation
   const [newAdminEmail, setNewAdminEmail] = useState('');
@@ -89,7 +90,27 @@ export const AdminSettings = () => {
     }
   };
 
+  const WA_KEYS: (keyof PlatformSettings)[] = ['whatsapp_enabled', 'msg91_auth_key', 'msg91_whatsapp_template_id'];
+
+  const handleSaveWa = async () => {
+    setSavingWa(true);
+    try {
+      for (const key of WA_KEYS) {
+        const value = (form[key] ?? '') as string;
+        if ((settings[key] ?? '') !== value) {
+          await upsert.mutateAsync({ key, value });
+        }
+      }
+      toast.success('WhatsApp settings saved — OTP delivery updated');
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to save WhatsApp settings');
+    } finally {
+      setSavingWa(false);
+    }
+  };
+
   const smsEnabled = (form.sms_enabled ?? '') === 'true';
+  const waEnabled = (form.whatsapp_enabled ?? '') === 'true';
 
   const currentLogo = settings.company_logo || '';
 
@@ -281,6 +302,75 @@ export const AdminSettings = () => {
           </button>
         </div>
       </motion.div>
+
+      {/* WhatsApp OTP Provider (MSG91 OTP API) */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+        className="bg-card rounded-2xl p-5 shadow-card border border-border/50">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center"><MessageCircle className="w-5 h-5 text-primary" /></div>
+          <div>
+            <h2 className="font-semibold">WhatsApp OTP Provider (MSG91)</h2>
+            <p className="text-sm text-muted-foreground">Send OTP over WhatsApp via the MSG91 OTP API. Takes priority over SMS when enabled.</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {/* Enable toggle */}
+          <label className="flex items-center justify-between gap-3 p-3 rounded-xl bg-muted border border-border cursor-pointer">
+            <div>
+              <p className="text-sm font-medium">Send OTP via WhatsApp</p>
+              <p className="text-xs text-muted-foreground">When on, OTP is delivered on WhatsApp (falls back to SMS / on-screen if it fails)</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={waEnabled}
+              onChange={(e) => set('whatsapp_enabled', e.target.checked ? 'true' : 'false')}
+              className="w-5 h-5 accent-primary"
+            />
+          </label>
+
+          <div>
+            <label className="text-sm font-medium mb-1 flex items-center gap-1.5">
+              <KeyRound className="w-3.5 h-3.5 text-muted-foreground" /> MSG91 Auth Key
+            </label>
+            <input
+              type="password"
+              autoComplete="off"
+              value={(form.msg91_auth_key ?? '') as string}
+              onChange={(e) => set('msg91_auth_key', e.target.value)}
+              placeholder="Your MSG91 auth key"
+              className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">Shared with the SMS provider — same MSG91 account key.</p>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-1 flex items-center gap-1.5">
+              <Hash className="w-3.5 h-3.5 text-muted-foreground" /> app_otp Template Code
+            </label>
+            <input
+              type="text"
+              value={(form.msg91_whatsapp_template_id ?? '') as string}
+              onChange={(e) => set('msg91_whatsapp_template_id', e.target.value)}
+              placeholder="WhatsApp OTP template code from MSG91"
+              className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+            />
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Configure the template in MSG91 with WhatsApp channel and an <code className="px-1 rounded bg-muted">##otp##</code> variable.
+          </p>
+        </div>
+
+        <div className="flex justify-end mt-5">
+          <button onClick={handleSaveWa} disabled={savingWa} className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 disabled:opacity-50">
+            {savingWa ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Save WhatsApp Settings
+          </button>
+        </div>
+      </motion.div>
+
+
 
 
 
