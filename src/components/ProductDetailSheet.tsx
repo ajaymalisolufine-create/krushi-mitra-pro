@@ -88,8 +88,8 @@ export const ProductDetailSheet = ({ product, onClose, onFindDealer }: ProductDe
             <div className="p-4 space-y-4">
               <div className="flex gap-4">
                 {hasImage ? (
-                  <img src={product.image_url!} alt={product.name} className="w-24 h-24 rounded-2xl object-cover border border-border"
-                    onError={e => { e.currentTarget.style.display = 'none'; }} />
+                  <img src={product.image_url!} alt={product.name} loading="lazy" referrerPolicy="no-referrer" className="w-24 h-24 rounded-2xl object-cover border border-border"
+                    onError={e => { if (!e.currentTarget.src.endsWith('/placeholder.svg')) e.currentTarget.src = '/placeholder.svg'; }} />
                 ) : (
                   <div className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${getProductGradient(product.icon)} flex items-center justify-center`}>
                     <ProductIcon className="w-12 h-12 text-white" />
