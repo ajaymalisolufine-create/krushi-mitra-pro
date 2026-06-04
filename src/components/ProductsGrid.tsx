@@ -192,8 +192,10 @@ export const ProductsGrid = () => {
                     <img 
                       src={product.image_url!} 
                       alt={product.name}
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
                       className="w-20 h-20 rounded-2xl object-cover border border-border shrink-0 group-hover:scale-105 transition-transform"
-                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      onError={(e) => { if (!e.currentTarget.src.endsWith('/placeholder.svg')) e.currentTarget.src = '/placeholder.svg'; }}
                     />
                   ) : (
                     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
