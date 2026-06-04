@@ -68,7 +68,7 @@ export const TrendingProducts = () => {
                   className="bg-card rounded-xl p-3 shadow-card border border-border/50 hover:shadow-card-hover transition-all cursor-pointer"
                 >
                   {hasImage ? (
-                    <img src={product.image_url!} alt={product.name} className="w-full h-20 rounded-lg object-cover mb-2" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    <img src={product.image_url!} alt={product.name} loading="lazy" referrerPolicy="no-referrer" className="w-full h-20 rounded-lg object-cover mb-2" onError={(e) => { if (!e.currentTarget.src.endsWith('/placeholder.svg')) e.currentTarget.src = '/placeholder.svg'; }} />
                   ) : (
                     <div className="w-10 h-10 rounded-lg bg-gradient-hero flex items-center justify-center mb-2">
                       <Package className="w-5 h-5 text-white" />
