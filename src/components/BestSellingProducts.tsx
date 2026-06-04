@@ -69,7 +69,7 @@ export const BestSellingProducts = () => {
                 >
                   <div className="flex items-start gap-3">
                     {hasImage ? (
-                      <img src={product.image_url!} alt={product.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                      <img src={product.image_url!} alt={product.name} loading="lazy" referrerPolicy="no-referrer" className="w-12 h-12 rounded-xl object-cover flex-shrink-0" onError={(e) => { if (!e.currentTarget.src.endsWith('/placeholder.svg')) e.currentTarget.src = '/placeholder.svg'; }} />
                     ) : (
                       <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-harvest-gold/20 to-accent/20 flex items-center justify-center flex-shrink-0">
                         <Package className="w-6 h-6 text-accent" />
