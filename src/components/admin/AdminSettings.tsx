@@ -29,6 +29,7 @@ export const AdminSettings = () => {
   const [form, setForm] = useState<PlatformSettings>({});
   const [savingAll, setSavingAll] = useState(false);
   const [savingSms, setSavingSms] = useState(false);
+  const [savingWa, setSavingWa] = useState(false);
 
   // Admin creation
   const [newAdminEmail, setNewAdminEmail] = useState('');
