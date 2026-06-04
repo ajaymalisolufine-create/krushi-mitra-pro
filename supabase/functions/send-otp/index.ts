@@ -54,6 +54,46 @@ async function sendViaMsg91(
   }
 }
 
+/**
+ * Send the OTP over WhatsApp using the MSG91 OTP API.
+ * Uses the "app_otp" Template Code (configured for WhatsApp channel in MSG91)
+ * plus the same MSG91 Auth Key. We pass our own pre-generated OTP so it matches
+ * the code stored in otp_codes (verified by verify-otp).
+ */
+async function sendViaMsg91Whatsapp(
+  authKey: string,
+  templateId: string,
+  phone: string,
+  otp: string,
+): Promise<{ ok: boolean; detail?: unknown }> {
+  const mobile = `91${String(phone).replace(/\D/g, "").slice(-10)}`;
+  try {
+    const url = new URL("https://control.msg91.com/api/v5/otp");
+    url.searchParams.set("template_id", templateId);
+    url.searchParams.set("mobile", mobile);
+    url.searchParams.set("otp", otp);
+    url.searchParams.set("authkey", authKey);
+    url.searchParams.set("realTimeResponse", "1");
+
+    const res = await fetch(url.toString(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        accept: "application/json",
+        authkey: authKey,
+      },
+      body: JSON.stringify({ otp }),
+    });
+    const detail = await res.json().catch(() => ({}));
+    const ok = res.ok && (detail?.type ? detail.type !== "error" : true);
+    if (!ok) console.error("MSG91 WhatsApp send failed:", JSON.stringify(detail));
+    return { ok, detail };
+  } catch (e) {
+    console.error("MSG91 WhatsApp request error:", e);
+    return { ok: false, detail: String(e) };
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
