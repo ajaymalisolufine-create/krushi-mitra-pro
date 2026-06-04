@@ -143,19 +143,40 @@ Deno.serve(async (req) => {
 
     if (insertError) throw insertError;
 
-    // Load SMS provider config from app_settings (manually editable in Admin Settings)
+    // Load OTP provider config from app_settings (manually editable in Admin Settings)
     let smsSent = false;
+    let whatsappSent = false;
     if (phone) {
       const { data: rows } = await supabaseAdmin
         .from("app_settings")
         .select("key, value")
-        .in("key", ["sms_enabled", "msg91_auth_key", "msg91_template_id", "msg91_sender_id"]);
+        .in("key", [
+          "sms_enabled",
+          "msg91_auth_key",
+          "msg91_template_id",
+          "msg91_sender_id",
+          "whatsapp_enabled",
+          "msg91_whatsapp_template_id",
+        ]);
 
       const cfg: Record<string, string> = {};
       (rows || []).forEach((r: { key: string; value: string }) => { cfg[r.key] = r.value; });
 
-      const enabled = cfg.sms_enabled === "true" || cfg.sms_enabled === "1";
-      if (enabled && cfg.msg91_auth_key && cfg.msg91_template_id) {
+      // WhatsApp channel (MSG91 OTP API + app_otp Template Code)
+      const waEnabled = cfg.whatsapp_enabled === "true" || cfg.whatsapp_enabled === "1";
+      if (waEnabled && cfg.msg91_auth_key && cfg.msg91_whatsapp_template_id) {
+        const result = await sendViaMsg91Whatsapp(
+          cfg.msg91_auth_key,
+          cfg.msg91_whatsapp_template_id,
+          phone,
+          otp,
+        );
+        whatsappSent = result.ok;
+      }
+
+      // SMS channel (MSG91 Flow API) — used as fallback or when WhatsApp didn't send
+      const smsEnabled = cfg.sms_enabled === "true" || cfg.sms_enabled === "1";
+      if (!whatsappSent && smsEnabled && cfg.msg91_auth_key && cfg.msg91_template_id) {
         const result = await sendViaMsg91(
           cfg.msg91_auth_key,
           cfg.msg91_template_id,
@@ -167,16 +188,24 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[OTP] Generated for ${email} (phone: ${phone || "n/a"}) — SMS sent: ${smsSent}`);
+    const delivered = whatsappSent || smsSent;
+    console.log(
+      `[OTP] Generated for ${email} (phone: ${phone || "n/a"}) — WhatsApp: ${whatsappSent}, SMS: ${smsSent}`,
+    );
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: smsSent ? "OTP sent to your mobile number" : "OTP generated",
+        message: whatsappSent
+          ? "OTP sent to your WhatsApp number"
+          : smsSent
+          ? "OTP sent to your mobile number"
+          : "OTP generated",
         sms_sent: smsSent,
+        whatsapp_sent: whatsappSent,
         expires_in: 300,
-        // Only expose the code when SMS delivery is NOT active (dev / fallback).
-        ...(smsSent ? {} : { otp }),
+        // Only expose the code when no real delivery happened (dev / fallback).
+        ...(delivered ? {} : { otp }),
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
