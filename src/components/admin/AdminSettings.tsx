@@ -90,7 +90,27 @@ export const AdminSettings = () => {
     }
   };
 
+  const WA_KEYS: (keyof PlatformSettings)[] = ['whatsapp_enabled', 'msg91_auth_key', 'msg91_whatsapp_template_id'];
+
+  const handleSaveWa = async () => {
+    setSavingWa(true);
+    try {
+      for (const key of WA_KEYS) {
+        const value = (form[key] ?? '') as string;
+        if ((settings[key] ?? '') !== value) {
+          await upsert.mutateAsync({ key, value });
+        }
+      }
+      toast.success('WhatsApp settings saved — OTP delivery updated');
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to save WhatsApp settings');
+    } finally {
+      setSavingWa(false);
+    }
+  };
+
   const smsEnabled = (form.sms_enabled ?? '') === 'true';
+  const waEnabled = (form.whatsapp_enabled ?? '') === 'true';
 
   const currentLogo = settings.company_logo || '';
 
