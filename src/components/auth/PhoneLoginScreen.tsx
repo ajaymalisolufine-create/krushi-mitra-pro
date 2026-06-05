@@ -167,15 +167,25 @@ export const PhoneLoginScreen = ({ onComplete }: PhoneLoginScreenProps) => {
   const sendOtpInternal = async (toEmail: string) => {
     setIsLoading(true);
     try {
-      const data = await callEdgeFunction<{ success?: boolean; otp?: string; sms_sent?: boolean; error?: string }>(
+      const data = await callEdgeFunction<{ success?: boolean; otp?: string; sms_sent?: boolean; whatsapp_sent?: boolean; error?: string }>(
         'send-otp',
         { email: toEmail, phone: phone ? `+91${phone}` : null }
       );
       if (data?.otp) setGeneratedOtp(data.otp);
-      await trackInteraction('phone_login', 'otp_sent', { phone, email: toEmail, sms: !!data?.sms_sent });
+      await trackInteraction('phone_login', 'otp_sent', { phone, email: toEmail, sms: !!data?.sms_sent, whatsapp: !!data?.whatsapp_sent });
       setStep('otp');
       setResendTimer(60);
-      if (data?.sms_sent) {
+      if (data?.whatsapp_sent) {
+        toast({
+          title: getText('OTP पाठवला', 'OTP भेजा गया', 'OTP Sent'),
+          description: getText(
+            `तुमच्या WhatsApp वर 6 अंकी OTP पाठवला: +91${phone}`,
+            `आपके WhatsApp पर 6 अंकी OTP भेजा गया: +91${phone}`,
+            `A 6-digit OTP was sent to your WhatsApp: +91${phone}`
+          ),
+          duration: 8000,
+        });
+      } else if (data?.sms_sent) {
         toast({
           title: getText('OTP पाठवला', 'OTP भेजा गया', 'OTP Sent'),
           description: getText(
