@@ -232,15 +232,20 @@ Deno.serve(async (req) => {
       (rows || []).forEach((r: { key: string; value: string }) => { cfg[r.key] = r.value; });
 
       // WhatsApp channel (MSG91 OTP API + app_otp Template Code)
+      // Note: the auth key may live in the saved Auth Key field OR be embedded
+      // inside the pasted JavaScript snippet — sendViaMsg91Whatsapp resolves both.
       const waEnabled = cfg.whatsapp_enabled === "true" || cfg.whatsapp_enabled === "1";
-      if (waEnabled && cfg.msg91_auth_key && cfg.msg91_whatsapp_template_id) {
+      if (waEnabled && cfg.msg91_whatsapp_template_id) {
         const result = await sendViaMsg91Whatsapp(
-          cfg.msg91_auth_key,
+          cfg.msg91_auth_key || "",
           cfg.msg91_whatsapp_template_id,
           phone,
           otp,
         );
         whatsappSent = result.ok;
+        if (!result.ok) {
+          console.error("[OTP] WhatsApp delivery failed:", JSON.stringify(result.detail));
+        }
       }
 
       // SMS channel (MSG91 Flow API) — used as fallback or when WhatsApp didn't send
