@@ -39,13 +39,22 @@ export const AdminSettings = () => {
 
   useEffect(() => {
     if (!isLoading) setForm(settings);
-  }, [isLoading]); // eslint-disable-line
+  }, [isLoading, settings]);
 
   const set = (k: keyof PlatformSettings, v: string) => setForm(prev => ({ ...prev, [k]: v }));
 
   const validatePhone = (p: string) => !p || /^\+?\d{10,15}$/.test(p.replace(/\s/g, ''));
   const validateEmail = (e: string) => !e || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
   const validateUrl = (u: string) => !u || /^https?:\/\/.+/.test(u);
+  const extractMsg91AuthKey = (raw: string) => {
+    const match = raw.match(/authkey['"]?\s*,\s*['"]([^'"]+)['"]/i) || raw.match(/['"]authkey['"]\s*:\s*['"]([^'"]+)['"]/i);
+    const value = match?.[1]?.trim() || '';
+    return value && !/^<.*>$/.test(value) ? value : '';
+  };
+  const sanitizeWaTemplateCode = (raw: string) => raw
+    .trim()
+    .replace(/(authkey['"]?\s*,\s*['"])([^'"]+)(['"])/i, '$1<authkey>$3')
+    .replace(/(['"]authkey['"]\s*:\s*['"])([^'"]+)(['"])/i, '$1<authkey>$3');
 
   const handleSaveAll = async () => {
     // Basic validation
@@ -93,14 +102,31 @@ export const AdminSettings = () => {
   const WA_KEYS: (keyof PlatformSettings)[] = ['whatsapp_enabled', 'msg91_auth_key', 'msg91_whatsapp_template_id'];
 
   const handleSaveWa = async () => {
+    const rawTemplateCode = (form.msg91_whatsapp_template_id ?? '') as string;
+    const extractedAuthKey = extractMsg91AuthKey(rawTemplateCode);
+    const nextForm: PlatformSettings = {
+      ...form,
+      msg91_auth_key: (((form.msg91_auth_key ?? '') as string).trim() || extractedAuthKey),
+      msg91_whatsapp_template_id: sanitizeWaTemplateCode(rawTemplateCode),
+    };
+
+    if ((nextForm.whatsapp_enabled ?? '') === 'true') {
+      if (!nextForm.msg91_auth_key) return toast.error('MSG91 Auth Key is required for WhatsApp OTP');
+      if (!nextForm.msg91_whatsapp_template_id) return toast.error('MSG91 WhatsApp template code is required');
+      const isJsSnippet = /whatsapp-outbound-message|integrated_number|to_and_components|messaging_product/i.test(nextForm.msg91_whatsapp_template_id);
+      if (isJsSnippet && !/integrated_number/i.test(nextForm.msg91_whatsapp_template_id)) return toast.error('MSG91 JavaScript code must include integrated_number');
+      if (isJsSnippet && !/app_otp|['"]name['"]\s*:/i.test(nextForm.msg91_whatsapp_template_id)) return toast.error('MSG91 JavaScript code must include template name app_otp');
+    }
+
     setSavingWa(true);
     try {
       for (const key of WA_KEYS) {
-        const value = (form[key] ?? '') as string;
+        const value = ((nextForm[key] ?? '') as string).trim();
         if ((settings[key] ?? '') !== value) {
           await upsert.mutateAsync({ key, value });
         }
       }
+      setForm(nextForm);
       toast.success('WhatsApp settings saved — OTP delivery updated');
     } catch (e: any) {
       toast.error(e.message || 'Failed to save WhatsApp settings');
