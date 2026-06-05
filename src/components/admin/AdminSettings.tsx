@@ -372,19 +372,19 @@ export const AdminSettings = () => {
 
           <div>
             <label className="text-sm font-medium mb-1 flex items-center gap-1.5">
-              <Hash className="w-3.5 h-3.5 text-muted-foreground" /> app_otp Template Code
+              <Hash className="w-3.5 h-3.5 text-muted-foreground" /> app_otp Template Code / JavaScript Snippet
             </label>
             <input
               type="text"
               value={(form.msg91_whatsapp_template_id ?? '') as string}
               onChange={(e) => set('msg91_whatsapp_template_id', e.target.value)}
-              placeholder="WhatsApp OTP template code from MSG91"
+              placeholder="app_otp or paste MSG91 JavaScript code"
               className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary text-sm"
             />
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Configure the template in MSG91 with WhatsApp channel and an <code className="px-1 rounded bg-muted">##otp##</code> variable.
+            You can paste MSG91's full JavaScript code here. If it contains an authkey, it is moved to the protected Auth Key field automatically.
           </p>
         </div>
 
