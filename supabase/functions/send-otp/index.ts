@@ -101,7 +101,7 @@ async function sendViaMsg91Whatsapp(
         return { ok: false, detail: "Invalid MSG91 WhatsApp JavaScript snippet: integrated_number or template name missing" };
       }
 
-      const res = await fetch("https://control.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/", {
+      const res = await fetch("https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -123,6 +123,7 @@ async function sendViaMsg91Whatsapp(
                   to: [mobile],
                   components: {
                     body_1: { type: "text", value: otp },
+                    button_1: { subtype: "url", type: "text", value: otp },
                   },
                 },
               ],
