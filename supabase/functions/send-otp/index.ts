@@ -218,10 +218,10 @@ Deno.serve(async (req) => {
       // Note: the auth key may live in the saved Auth Key field OR be embedded
       // inside the pasted JavaScript snippet — sendViaMsg91Whatsapp resolves both.
       const waEnabled = cfg.whatsapp_enabled === "true" || cfg.whatsapp_enabled === "1";
-      if (waEnabled && cfg.msg91_whatsapp_template_id) {
+      if (waEnabled) {
         const result = await sendViaMsg91Whatsapp(
           msg91AuthKey,
-          cfg.msg91_whatsapp_template_id,
+          cfg.msg91_whatsapp_template_id || "",
           phone,
           otp,
         );
