@@ -78,7 +78,7 @@ async function sendViaMsg91Whatsapp(
   };
   const headerAuth = rawTemplate.match(/authkey['"]?\s*,\s*['"]([^'"]+)['"]/i)?.[1]
     || rawTemplate.match(/['"]authkey['"]\s*:\s*['"]([^'"]+)['"]/i)?.[1];
-  const effectiveAuthKey = clean(authKey) || clean(headerAuth);
+  const effectiveAuthKey = clean(Deno.env.get("MSG91_AUTH_KEY")) || clean(authKey) || clean(headerAuth);
 
   if (!effectiveAuthKey || !rawTemplate) {
     return { ok: false, detail: "Missing MSG91 WhatsApp auth key or template code" };
@@ -230,6 +230,7 @@ Deno.serve(async (req) => {
 
       const cfg: Record<string, string> = {};
       (rows || []).forEach((r: { key: string; value: string }) => { cfg[r.key] = r.value; });
+      const msg91AuthKey = Deno.env.get("MSG91_AUTH_KEY") || cfg.msg91_auth_key || "";
 
       // WhatsApp channel (MSG91 OTP API + app_otp Template Code)
       // Note: the auth key may live in the saved Auth Key field OR be embedded
@@ -237,7 +238,7 @@ Deno.serve(async (req) => {
       const waEnabled = cfg.whatsapp_enabled === "true" || cfg.whatsapp_enabled === "1";
       if (waEnabled && cfg.msg91_whatsapp_template_id) {
         const result = await sendViaMsg91Whatsapp(
-          cfg.msg91_auth_key || "",
+          msg91AuthKey,
           cfg.msg91_whatsapp_template_id,
           phone,
           otp,
@@ -250,9 +251,9 @@ Deno.serve(async (req) => {
 
       // SMS channel (MSG91 Flow API) — used as fallback or when WhatsApp didn't send
       const smsEnabled = cfg.sms_enabled === "true" || cfg.sms_enabled === "1";
-      if (!whatsappSent && smsEnabled && cfg.msg91_auth_key && cfg.msg91_template_id) {
+      if (!whatsappSent && smsEnabled && msg91AuthKey && cfg.msg91_template_id) {
         const result = await sendViaMsg91(
-          cfg.msg91_auth_key,
+          msg91AuthKey,
           cfg.msg91_template_id,
           cfg.msg91_sender_id || null,
           phone,
