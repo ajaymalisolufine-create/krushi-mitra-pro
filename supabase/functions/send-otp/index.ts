@@ -60,6 +60,15 @@ async function sendViaMsg91(
  * plus the same MSG91 Auth Key. We pass our own pre-generated OTP so it matches
  * the code stored in otp_codes (verified by verify-otp).
  */
+// Known-good values for the "app_otp" WhatsApp template (from MSG91 console).
+// Used as defaults so delivery works even if the saved snippet fails to parse.
+const MSG91_WA_DEFAULTS = {
+  integratedNumber: "15559573241",
+  templateName: "app_otp",
+  languageCode: "en",
+  namespace: "a12efab5_3e5b_4416_a69d_25b913647426",
+};
+
 async function sendViaMsg91Whatsapp(
   authKey: string,
   templateInput: string,
@@ -80,82 +89,55 @@ async function sendViaMsg91Whatsapp(
     || rawTemplate.match(/['"]authkey['"]\s*:\s*['"]([^'"]+)['"]/i)?.[1];
   const effectiveAuthKey = clean(Deno.env.get("MSG91_AUTH_KEY")) || clean(authKey) || clean(headerAuth);
 
-  if (!effectiveAuthKey || !rawTemplate) {
-    return { ok: false, detail: "Missing MSG91 WhatsApp auth key or template code" };
+  if (!effectiveAuthKey) {
+    return { ok: false, detail: "Missing MSG91 WhatsApp auth key (set MSG91_AUTH_KEY secret)" };
   }
 
-  const looksLikeOutboundSnippet = /whatsapp-outbound-message|integrated_number|to_and_components|messaging_product/i.test(rawTemplate);
+  // Parse values from the saved snippet, falling back to the known-good defaults.
+  const integratedNumber = quoted("integrated_number") || MSG91_WA_DEFAULTS.integratedNumber;
+  const templateName = rawTemplate.match(/['"]template['"]\s*:\s*\{[\s\S]*?['"]name['"]\s*:\s*['"]([^'"]+)['"]/i)?.[1]
+    || quoted("name")
+    || MSG91_WA_DEFAULTS.templateName;
+  const languageCode = rawTemplate.match(/['"]language['"]\s*:\s*\{[\s\S]*?['"]code['"]\s*:\s*['"]([^'"]+)['"]/i)?.[1]
+    || MSG91_WA_DEFAULTS.languageCode;
+  const namespace = quoted("namespace") || MSG91_WA_DEFAULTS.namespace;
 
   try {
-    if (looksLikeOutboundSnippet) {
-      const integratedNumber = quoted("integrated_number");
-      const templateName = rawTemplate.match(/['"]template['"]\s*:\s*\{[\s\S]*?['"]name['"]\s*:\s*['"]([^'"]+)['"]/i)?.[1]
-        || quoted("name")
-        || clean(rawTemplate);
-      const languageCode = rawTemplate.match(/['"]language['"]\s*:\s*\{[\s\S]*?['"]code['"]\s*:\s*['"]([^'"]+)['"]/i)?.[1]
-        || "en";
-      const namespaceMatch = rawTemplate.match(/['"]namespace['"]\s*:\s*(?:['"]([^'"]*)['"]|null)/i);
-      const namespace = clean(namespaceMatch?.[1]);
-
-      if (!integratedNumber || !templateName) {
-        return { ok: false, detail: "Invalid MSG91 WhatsApp JavaScript snippet: integrated_number or template name missing" };
-      }
-
-      const res = await fetch("https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          accept: "application/json",
-          authkey: effectiveAuthKey,
-        },
-        body: JSON.stringify({
-          integrated_number: integratedNumber,
-          content_type: "template",
-          payload: {
-            messaging_product: "whatsapp",
-            type: "template",
-            template: {
-              name: templateName,
-              language: { code: languageCode, policy: "deterministic" },
-              namespace: namespace || null,
-              to_and_components: [
-                {
-                  to: [mobile],
-                  components: {
-                    body_1: { type: "text", value: otp },
-                    button_1: { subtype: "url", type: "text", value: otp },
-                  },
-                },
-              ],
-            },
-          },
-        }),
-      });
-      const detail = await res.json().catch(() => ({}));
-      const ok = res.ok && (detail?.type ? detail.type !== "error" : true) && detail?.status !== "fail";
-      if (!ok) console.error("MSG91 WhatsApp outbound failed:", JSON.stringify(detail));
-      return { ok, detail };
-    }
-
-    const url = new URL("https://control.msg91.com/api/v5/otp");
-    url.searchParams.set("template_id", rawTemplate);
-    url.searchParams.set("mobile", mobile);
-    url.searchParams.set("otp", otp);
-    url.searchParams.set("authkey", effectiveAuthKey);
-    url.searchParams.set("realTimeResponse", "1");
-
-    const res = await fetch(url.toString(), {
+    const res = await fetch("https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         accept: "application/json",
         authkey: effectiveAuthKey,
       },
-      body: JSON.stringify({ otp }),
+      body: JSON.stringify({
+        integrated_number: integratedNumber,
+        content_type: "template",
+        payload: {
+          messaging_product: "whatsapp",
+          type: "template",
+          template: {
+            name: templateName,
+            language: { code: languageCode, policy: "deterministic" },
+            namespace: namespace || null,
+            to_and_components: [
+              {
+                to: [mobile],
+                components: {
+                  // body_1 = the OTP value shown in the message body
+                  body_1: { type: "text", value: otp },
+                  // button_1 = the copy-code URL button variable (the OTP)
+                  button_1: { subtype: "url", type: "text", value: otp },
+                },
+              },
+            ],
+          },
+        },
+      }),
     });
     const detail = await res.json().catch(() => ({}));
-    const ok = res.ok && (detail?.type ? detail.type !== "error" : true);
-    if (!ok) console.error("MSG91 WhatsApp send failed:", JSON.stringify(detail));
+    const ok = res.ok && (detail?.type ? detail.type !== "error" : true) && detail?.status !== "fail";
+    if (!ok) console.error("MSG91 WhatsApp outbound failed:", JSON.stringify(detail));
     return { ok, detail };
   } catch (e) {
     console.error("MSG91 WhatsApp request error:", e);
@@ -236,10 +218,10 @@ Deno.serve(async (req) => {
       // Note: the auth key may live in the saved Auth Key field OR be embedded
       // inside the pasted JavaScript snippet — sendViaMsg91Whatsapp resolves both.
       const waEnabled = cfg.whatsapp_enabled === "true" || cfg.whatsapp_enabled === "1";
-      if (waEnabled && cfg.msg91_whatsapp_template_id) {
+      if (waEnabled) {
         const result = await sendViaMsg91Whatsapp(
           msg91AuthKey,
-          cfg.msg91_whatsapp_template_id,
+          cfg.msg91_whatsapp_template_id || "",
           phone,
           otp,
         );
