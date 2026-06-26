@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, Star, Loader2, Check, Filter } from 'lucide-react';
+import { Package, Star, Loader2, Check, Filter, Share2 } from 'lucide-react';
 import { useProducts, type Product } from '@/hooks/useProducts';
 import { useApp } from '@/contexts/AppContext';
 import { useTracker } from '@/hooks/useTracker';
 import { ProductDetailSheet } from './ProductDetailSheet';
+import { shareContent } from '@/lib/share';
 import { allIndianCrops, getCropLabel, buildCropMapping } from '@/lib/crops';
 
 const cropMapping = buildCropMapping();
@@ -68,6 +69,16 @@ export const ProductsGrid = () => {
     await track('Product View', product.name, { productId: product.id });
     setSelectedProduct(product);
   };
+
+  const handleShare = (product: Product, e: React.MouseEvent) => {
+    e.stopPropagation();
+    shareContent({
+      title: product.name,
+      text: [product.tagline, product.description].filter(Boolean).join(' — '),
+    });
+  };
+
+
 
   if (isLoading) {
     return (
@@ -224,13 +235,22 @@ export const ProductsGrid = () => {
                     )}
 
                     <div className="mt-3 flex items-center justify-between">
-                      {product.mrp > 0 && (
+                      {product.mrp > 0 ? (
                         <div>
                           <span className="text-xs text-muted-foreground">MRP</span>
                           <p className="font-bold text-primary">₹{product.mrp}</p>
                         </div>
-                      )}
+                      ) : <span />}
+                      <button
+                        onClick={(e) => handleShare(product, e)}
+                        aria-label={getText('शेअर करा', 'शेयर करें', 'Share')}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted text-foreground text-xs font-medium hover:bg-muted/80 transition-colors"
+                      >
+                        <Share2 className="w-3.5 h-3.5 text-primary" />
+                        {getText('शेअर', 'शेयर', 'Share')}
+                      </button>
                     </div>
+
                   </div>
                 </div>
 

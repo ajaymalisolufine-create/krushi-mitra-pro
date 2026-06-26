@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check, MapPin, Package, Zap, Sparkles, Shield, Droplet, Leaf, ShoppingBag, Loader2 } from 'lucide-react';
+import { X, Check, MapPin, Package, Zap, Sparkles, Shield, Droplet, Leaf, ShoppingBag, Loader2, Share2 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useEnquire } from '@/hooks/useEnquire';
+import { shareContent } from '@/lib/share';
 import { getTranslatedText } from '@/hooks/useTranslateContent';
 import type { Product } from '@/hooks/useProducts';
 
@@ -62,6 +63,16 @@ export const ProductDetailSheet = ({ product, onClose, onFindDealer }: ProductDe
     });
   };
 
+  const handleShare = () => {
+    if (!product) return;
+    shareContent({
+      title: product.name,
+      text: [product.tagline, product.description].filter(Boolean).join(' — '),
+    });
+  };
+
+
+
   if (!product) return null;
 
   const ProductIcon = getProductIcon(product.icon);
@@ -82,7 +93,10 @@ export const ProductDetailSheet = ({ product, onClose, onFindDealer }: ProductDe
             className="bg-card rounded-t-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
             <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between z-10">
               <h2 className="text-lg font-bold">{product.name}</h2>
-              <button onClick={onClose} className="p-2 rounded-full hover:bg-muted"><X className="w-5 h-5" /></button>
+              <div className="flex items-center gap-1">
+                <button onClick={handleShare} aria-label={getText('शेअर करा', 'शेयर करें', 'Share')} className="p-2 rounded-full hover:bg-muted"><Share2 className="w-5 h-5 text-primary" /></button>
+                <button onClick={onClose} aria-label="Close" className="p-2 rounded-full hover:bg-muted"><X className="w-5 h-5" /></button>
+              </div>
             </div>
 
             <div className="p-4 space-y-4">
@@ -150,6 +164,12 @@ export const ProductDetailSheet = ({ product, onClose, onFindDealer }: ProductDe
                 className="w-full py-3 bg-gradient-to-r from-primary to-secondary text-primary-foreground font-semibold rounded-xl flex items-center justify-center gap-2">
                 <MapPin className="w-5 h-5" />
                 {getText('विक्रेता शोधा', 'विक्रेता खोजें', 'Find Dealer')}
+              </button>
+
+              <button onClick={handleShare}
+                className="w-full py-3 border border-border bg-muted/50 text-foreground font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-muted transition-colors">
+                <Share2 className="w-5 h-5 text-primary" />
+                {getText('शेअर करा', 'शेयर करें', 'Share')}
               </button>
             </div>
           </motion.div>

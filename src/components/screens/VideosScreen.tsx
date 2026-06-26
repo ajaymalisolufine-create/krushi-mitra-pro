@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Eye, Clock, Filter, Video, X, ArrowLeft, ShoppingBag, Loader2 } from 'lucide-react';
+import { Play, Eye, Clock, Filter, Video, X, ArrowLeft, ShoppingBag, Loader2, Share2 } from 'lucide-react';
 import { useActiveVideos } from '@/hooks/useVideos';
 import { useApp } from '@/contexts/AppContext';
 import { useEnquire } from '@/hooks/useEnquire';
 import { useTracker } from '@/hooks/useTracker';
 import { filterByState } from '@/lib/stateFilter';
 import { extractYouTubeId, getYouTubeEmbedUrl, getYouTubeWatchUrl } from '@/lib/youtube';
+import { shareContent } from '@/lib/share';
 import { supabase } from '@/integrations/supabase/client';
 
 const translations = {
@@ -84,6 +85,20 @@ export const VideosScreen = () => {
     }
   };
 
+  const shareLabel = language === 'mr' ? 'शेअर करा' : language === 'hi' ? 'शेयर करें' : 'Share';
+
+  const handleShare = (video: typeof videos[0], e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    track('Video', video.title || '-', { videoId: video.id, action: 'share' });
+    shareContent({
+      title: video.title,
+      text: video.description || '',
+      url: video.youtube_url || getYouTubeWatchUrl(extractYouTubeId(video.youtube_url || '') || '') || undefined,
+    });
+  };
+
+
+
   if (isLoading) {
     return (
       <div className="space-y-4 animate-fade-in">
@@ -135,12 +150,24 @@ export const VideosScreen = () => {
                 />
               </div>
               {activeVideoMeta && (
-                <button onClick={() => enquire({ sourceType: 'video', sourceId: activeVideoMeta.id, sourceTitle: activeVideoMeta.title })}
-                  disabled={isEnquiring}
-                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-harvest-gold to-sunrise-orange text-white rounded-full font-semibold text-sm disabled:opacity-50">
-                  {isEnquiring ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingBag className="w-4 h-4" />}
-                  {enquireLabel}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => enquire({ sourceType: 'video', sourceId: activeVideoMeta.id, sourceTitle: activeVideoMeta.title })}
+                    disabled={isEnquiring}
+                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-harvest-gold to-sunrise-orange text-white rounded-full font-semibold text-sm disabled:opacity-50">
+                    {isEnquiring ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingBag className="w-4 h-4" />}
+                    {enquireLabel}
+                  </button>
+                  {(() => {
+                    const v = videos.find(vid => vid.id === activeVideoMeta.id);
+                    return v ? (
+                      <button onClick={() => handleShare(v)}
+                        className="flex items-center gap-2 px-6 py-3 bg-white/10 text-white rounded-full font-semibold text-sm hover:bg-white/20 transition-colors">
+                        <Share2 className="w-4 h-4" />
+                        {shareLabel}
+                      </button>
+                    ) : null;
+                  })()}
+                </div>
               )}
             </div>
           </motion.div>
@@ -246,7 +273,16 @@ export const VideosScreen = () => {
                 </div>
 
                 <div className="p-4">
-                  <h3 className="font-semibold text-sm line-clamp-2">{video.title}</h3>
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-semibold text-sm line-clamp-2 flex-1">{video.title}</h3>
+                    <button
+                      onClick={(e) => handleShare(video, e)}
+                      aria-label={shareLabel}
+                      className="shrink-0 p-2 -mr-1 -mt-1 rounded-full text-primary hover:bg-primary/10 transition-colors"
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </button>
+                  </div>
                   <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                     {video.views !== null && video.views > 0 && (
                       <span className="flex items-center gap-1">
