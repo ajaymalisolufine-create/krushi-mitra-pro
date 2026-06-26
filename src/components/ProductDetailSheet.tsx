@@ -165,6 +165,12 @@ export const ProductDetailSheet = ({ product, onClose, onFindDealer }: ProductDe
                 <MapPin className="w-5 h-5" />
                 {getText('विक्रेता शोधा', 'विक्रेता खोजें', 'Find Dealer')}
               </button>
+
+              <button onClick={handleShare}
+                className="w-full py-3 border border-border bg-muted/50 text-foreground font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-muted transition-colors">
+                <Share2 className="w-5 h-5 text-primary" />
+                {getText('शेअर करा', 'शेयर करें', 'Share')}
+              </button>
             </div>
           </motion.div>
         </motion.div>
