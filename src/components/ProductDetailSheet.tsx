@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check, MapPin, Package, Zap, Sparkles, Shield, Droplet, Leaf, ShoppingBag, Loader2 } from 'lucide-react';
+import { X, Check, MapPin, Package, Zap, Sparkles, Shield, Droplet, Leaf, ShoppingBag, Loader2, Share2 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useEnquire } from '@/hooks/useEnquire';
+import { shareContent } from '@/lib/share';
 import { getTranslatedText } from '@/hooks/useTranslateContent';
 import type { Product } from '@/hooks/useProducts';
 
