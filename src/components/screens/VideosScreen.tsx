@@ -150,12 +150,24 @@ export const VideosScreen = () => {
                 />
               </div>
               {activeVideoMeta && (
-                <button onClick={() => enquire({ sourceType: 'video', sourceId: activeVideoMeta.id, sourceTitle: activeVideoMeta.title })}
-                  disabled={isEnquiring}
-                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-harvest-gold to-sunrise-orange text-white rounded-full font-semibold text-sm disabled:opacity-50">
-                  {isEnquiring ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingBag className="w-4 h-4" />}
-                  {enquireLabel}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => enquire({ sourceType: 'video', sourceId: activeVideoMeta.id, sourceTitle: activeVideoMeta.title })}
+                    disabled={isEnquiring}
+                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-harvest-gold to-sunrise-orange text-white rounded-full font-semibold text-sm disabled:opacity-50">
+                    {isEnquiring ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingBag className="w-4 h-4" />}
+                    {enquireLabel}
+                  </button>
+                  {(() => {
+                    const v = videos.find(vid => vid.id === activeVideoMeta.id);
+                    return v ? (
+                      <button onClick={() => handleShare(v)}
+                        className="flex items-center gap-2 px-6 py-3 bg-white/10 text-white rounded-full font-semibold text-sm hover:bg-white/20 transition-colors">
+                        <Share2 className="w-4 h-4" />
+                        {shareLabel}
+                      </button>
+                    ) : null;
+                  })()}
+                </div>
               )}
             </div>
           </motion.div>
