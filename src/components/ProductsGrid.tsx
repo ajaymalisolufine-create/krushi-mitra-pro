@@ -70,6 +70,16 @@ export const ProductsGrid = () => {
     setSelectedProduct(product);
   };
 
+  const handleShare = (product: Product, e: React.MouseEvent) => {
+    e.stopPropagation();
+    shareContent({
+      title: product.name,
+      text: [product.tagline, product.description].filter(Boolean).join(' — '),
+    });
+  };
+
+
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
