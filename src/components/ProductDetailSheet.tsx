@@ -93,7 +93,10 @@ export const ProductDetailSheet = ({ product, onClose, onFindDealer }: ProductDe
             className="bg-card rounded-t-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
             <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between z-10">
               <h2 className="text-lg font-bold">{product.name}</h2>
-              <button onClick={onClose} className="p-2 rounded-full hover:bg-muted"><X className="w-5 h-5" /></button>
+              <div className="flex items-center gap-1">
+                <button onClick={handleShare} aria-label={getText('शेअर करा', 'शेयर करें', 'Share')} className="p-2 rounded-full hover:bg-muted"><Share2 className="w-5 h-5 text-primary" /></button>
+                <button onClick={onClose} aria-label="Close" className="p-2 rounded-full hover:bg-muted"><X className="w-5 h-5" /></button>
+              </div>
             </div>
 
             <div className="p-4 space-y-4">
