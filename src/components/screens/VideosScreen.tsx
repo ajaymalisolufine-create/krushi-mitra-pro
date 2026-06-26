@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Eye, Clock, Filter, Video, X, ArrowLeft, ShoppingBag, Loader2 } from 'lucide-react';
+import { Play, Eye, Clock, Filter, Video, X, ArrowLeft, ShoppingBag, Loader2, Share2 } from 'lucide-react';
 import { useActiveVideos } from '@/hooks/useVideos';
 import { useApp } from '@/contexts/AppContext';
 import { useEnquire } from '@/hooks/useEnquire';
 import { useTracker } from '@/hooks/useTracker';
 import { filterByState } from '@/lib/stateFilter';
 import { extractYouTubeId, getYouTubeEmbedUrl, getYouTubeWatchUrl } from '@/lib/youtube';
+import { shareContent } from '@/lib/share';
 import { supabase } from '@/integrations/supabase/client';
 
 const translations = {
