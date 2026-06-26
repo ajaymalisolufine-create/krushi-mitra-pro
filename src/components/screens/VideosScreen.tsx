@@ -85,6 +85,20 @@ export const VideosScreen = () => {
     }
   };
 
+  const shareLabel = language === 'mr' ? 'शेअर करा' : language === 'hi' ? 'शेयर करें' : 'Share';
+
+  const handleShare = (video: typeof videos[0], e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    track('Video Share', video.title || '-', { videoId: video.id });
+    shareContent({
+      title: video.title,
+      text: video.description || '',
+      url: video.youtube_url || getYouTubeWatchUrl(extractYouTubeId(video.youtube_url || '') || '') || undefined,
+    });
+  };
+
+
+
   if (isLoading) {
     return (
       <div className="space-y-4 animate-fade-in">
