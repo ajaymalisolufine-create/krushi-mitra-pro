@@ -63,6 +63,16 @@ export const ProductDetailSheet = ({ product, onClose, onFindDealer }: ProductDe
     });
   };
 
+  const handleShare = () => {
+    if (!product) return;
+    shareContent({
+      title: product.name,
+      text: [product.tagline, product.description].filter(Boolean).join(' — '),
+    });
+  };
+
+
+
   if (!product) return null;
 
   const ProductIcon = getProductIcon(product.icon);
