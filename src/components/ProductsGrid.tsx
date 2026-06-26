@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, Star, Loader2, Check, Filter } from 'lucide-react';
+import { Package, Star, Loader2, Check, Filter, Share2 } from 'lucide-react';
 import { useProducts, type Product } from '@/hooks/useProducts';
 import { useApp } from '@/contexts/AppContext';
 import { useTracker } from '@/hooks/useTracker';
 import { ProductDetailSheet } from './ProductDetailSheet';
+import { shareContent } from '@/lib/share';
 import { allIndianCrops, getCropLabel, buildCropMapping } from '@/lib/crops';
 
 const cropMapping = buildCropMapping();
