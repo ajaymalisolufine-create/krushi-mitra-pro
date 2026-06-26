@@ -234,7 +234,6 @@ export const ProductsGrid = () => {
                       </p>
                     )}
 
-                    <div class="placeholder"></div>
                     <div className="mt-3 flex items-center justify-between">
                       {product.mrp > 0 ? (
                         <div>
