@@ -89,7 +89,7 @@ export const VideosScreen = () => {
 
   const handleShare = (video: typeof videos[0], e?: React.MouseEvent) => {
     e?.stopPropagation();
-    track('Video Share', video.title || '-', { videoId: video.id });
+    track('Video', video.title || '-', { videoId: video.id, action: 'share' });
     shareContent({
       title: video.title,
       text: video.description || '',
