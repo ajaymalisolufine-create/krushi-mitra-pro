@@ -273,7 +273,16 @@ export const VideosScreen = () => {
                 </div>
 
                 <div className="p-4">
-                  <h3 className="font-semibold text-sm line-clamp-2">{video.title}</h3>
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-semibold text-sm line-clamp-2 flex-1">{video.title}</h3>
+                    <button
+                      onClick={(e) => handleShare(video, e)}
+                      aria-label={shareLabel}
+                      className="shrink-0 p-2 -mr-1 -mt-1 rounded-full text-primary hover:bg-primary/10 transition-colors"
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </button>
+                  </div>
                   <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                     {video.views !== null && video.views > 0 && (
                       <span className="flex items-center gap-1">
